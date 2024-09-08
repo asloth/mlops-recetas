@@ -1,0 +1,87 @@
+services:
+  postgres:
+    env_file: "./mlflow-server/mlflow.env"
+    image: postgres:latest
+    container_name: postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    networks:
+      - backend
+    environment:
+      - POSTGRES_USER=${PG_USER}
+      - POSTGRES_PASSWORD=${PG_PASSWORD}
+      - POSTGRES_DB=${PG_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  minio:
+    env_file: "./mlflow-server/mlflow.env"
+    restart: always
+    image: quay.io/minio/minio
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - frontend
+      - backend
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_ACCESS_KEY}
+      - MINIO_STORAGE_USE_HTTPS=false
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+  minio-setup:
+    env_file: "./mlflow-server/mlflow.env"
+    image: quay.io/minio/mc
+    depends_on:
+      - minio
+    volumes:
+      - ./minio/create-bucket.sh:/create-bucket.sh
+    entrypoint: /bin/sh
+    command: -c "chmod +x /create-bucket.sh && /create-bucket.sh"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_ACCESS_KEY}
+  mlflow:
+    env_file: "./mlflow-server/mlflow.env"
+    restart: always
+    build: ./mlflow-server/
+    container_name: mlflow_server
+    ports:
+      - "5000:5000"
+    networks:
+      - frontend
+      - backend
+      - shared_network
+    environment:
+      - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_ACCESS_KEY}
+      - MLFLOW_S3_ENDPOINT_URL=http://localhost:9000
+      - MLFLOW_S3_IGNORE_TLS=true
+    command: >
+      mlflow server
+      --backend-store-uri postgresql://${PG_USER}:${PG_PASSWORD}@postgres:${PG_PORT}/${PG_DB} 
+      --host 0.0.0.0
+      --serve-artifacts
+      --port 5000
+      --artifacts-destination s3://mlflow
+    depends_on:
+      - postgres
+      - minio-setup     
+volumes:
+  postgres_data:
+  minio_data:
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+  shared_network:
+    external: true
