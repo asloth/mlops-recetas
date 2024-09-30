@@ -16,6 +16,8 @@ import mlflow
 import mlflow.sklearn
 
 import logging
+from fastapi import FastAPI
+
 
 logging.basicConfig(level=logging.WARN)
 logger = logging.getLogger(__name__)
@@ -28,7 +30,7 @@ def eval_metrics(actual, pred):
     return rmse, mae, r2
 
 
-if __name__ == "__main__":
+def train():
     warnings.filterwarnings("ignore")
     np.random.seed(40)
 
@@ -51,10 +53,10 @@ if __name__ == "__main__":
     train_y = train[["quality"]]
     test_y = test[["quality"]]
 
-    alpha = float(sys.argv[1]) if len(sys.argv) > 1 else 0.5
-    l1_ratio = float(sys.argv[2]) if len(sys.argv) > 2 else 0.5
+    alpha = 0.5
+    l1_ratio = 0.5
 
-    remote_server_uri = "http://localhost:5000"  # set to your server URI
+    remote_server_uri = "http://mlflow-server:5000"  # set to your server URI
     mlflow.set_tracking_uri(remote_server_uri)
     mlflow.set_experiment("testing12345")
 
@@ -91,3 +93,17 @@ if __name__ == "__main__":
             )
         else:
             mlflow.sklearn.log_model(lr, "model")
+
+
+app = FastAPI()
+
+
+@app.get("/train")
+async def trainn():
+    train()
+    return {"message": "Hello World"}
+
+
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}

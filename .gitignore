@@ -1,2 +1,4 @@
 model/.venv/
 mlruns/
+airflow/logs/
+airflow/dags/__pycache__/

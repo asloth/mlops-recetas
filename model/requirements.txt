@@ -2,3 +2,10 @@ pandas
 scikit-learn
 numpy
 mlflow
+fastapi[standard]
+xformers
+trl<0.9.0
+peft
+accelerate
+bitsandbytes
+git+https://github.com/unslothai/unsloth.git@main#egg=unsloth[colab-new]
