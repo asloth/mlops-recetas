@@ -21,6 +21,22 @@ services:
       - ./trainmodel.py:/app/trainmodel.py
     entrypoint: >
       uvicorn trainmodel:app --host 0.0.0.0 --port 8000
+  prodserver:
+    build: ./
+    restart: always
+    networks:
+        - shared_network
+    container_name: prodcontainer
+    ports:
+      - "8899:8800"
+    expose:
+        - "8899"
+    volumes:
+      - ./evaluate.py:/app/evaluate.py
+    entrypoint: >
+      uvicorn evaluate:app --host 0.0.0.0 --port 8800
+
+
 networks:
   shared_network:
     external: true

@@ -12,3 +12,12 @@ with DAG(
         endpoint="/train",
         headers={"Content-Type": "application/json"},
     )
+    task_compare_and_deploy = SimpleHttpOperator(
+        task_id="task_compare_and_deploy",
+        method="POST",
+        http_conn_id="prodserver",  # Defined in Airflow Connections
+        endpoint="/evaluateanddeploy",
+        headers={"Content-Type": "application/json"},
+    )
+
+    trigger_model_api >> task_compare_and_deploy

@@ -206,9 +206,9 @@ def train_my_model():
 
     warmup_steps = 5
     per_device_train_batch_size = 2
-    max_steps = 60
+    max_steps = 10
     weight_decay = 0.01
-    gradient_accumulation_steps = (4,)
+    gradient_accumulation_steps = 4
 
     with mlflow.start_run():
         mlflow.log_param("warmup_steps", warmup_steps)
