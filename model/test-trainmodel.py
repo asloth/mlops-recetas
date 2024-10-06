@@ -5,14 +5,22 @@ from transformers import TrainingArguments
 from datasets import Dataset
 import transformers
 
-# Assuming your main script is in a file called 'train_script.py'
-from trainmodel import (
-    train_my_model,
-    formatting_prompts_func,
-    Phi3,
-    is_bfloat16_supported,
-    max_seq_length,
-)
+# Mock the entire unsloth module
+mock_unsloth = MagicMock()
+mock_FastLanguageModel = MagicMock()
+mock_unsloth.FastLanguageModel = mock_FastLanguageModel
+sys.modules["unsloth"] = mock_unsloth
+sys.modules["unsloth.FastLanguageModel"] = mock_FastLanguageModel
+
+# Now patch the import in your script
+with patch.dict("sys.modules", {"unsloth": mock_unsloth}):
+    # Import your script here
+    from trainmodel import (
+        train_my_model,
+        formatting_prompts_func,
+        Phi3,
+        is_bfloat16_supported,
+    )
 
 
 @pytest.fixture
