@@ -73,10 +73,6 @@ model = FastLanguageModel.get_peft_model(
     loftq_config=None,  # And LoftQ
 )
 
-remote_server_uri = "http://mlflow-server:5000"  # set to your server URI
-mlflow.set_tracking_uri(remote_server_uri)
-mlflow.set_experiment("recetas-model")
-
 
 class Phi3(mlflow.pyfunc.PythonModel):
     def load_context(self, context):
@@ -205,6 +201,9 @@ def train_my_model():
     gradient_accumulation_steps = 4
 
     with mlflow.start_run():
+        remote_server_uri = "http://mlflow-server:5000"  # set to your server URI
+        mlflow.set_tracking_uri(remote_server_uri)
+        mlflow.set_experiment("recetas-model")
         mlflow.log_param("warmup_steps", warmup_steps)
         mlflow.log_param("per_device_train_batch_size", per_device_train_batch_size)
         mlflow.log_param("max_steps", max_steps)
