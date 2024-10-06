@@ -32,7 +32,7 @@ def test_training_function():
     # Mock the mlflow and SFTTrainer
     with patch("mlflow.start_run"), patch("mlflow.log_param"), patch(
         "mlflow.log_metric"
-    ), patch("SFTTrainer", SFTTrainerMock), patch("model.save_pretrained_merged"):
+    ), patch("trl.SFTTrainer", SFTTrainerMock), patch("model.save_pretrained_merged"):
         # Run the function under test
         with mlflow.start_run():
             mlflow.log_param("warmup_steps", warmup_steps)
