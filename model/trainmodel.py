@@ -8,7 +8,6 @@ from unsloth import is_bfloat16_supported
 import mlflow
 from fastapi import FastAPI
 from trl import SFTTrainer
-import mlflow.pytorch
 import transformers
 
 max_seq_length = 2048  # Choose any! We auto support RoPE Scaling internally!
