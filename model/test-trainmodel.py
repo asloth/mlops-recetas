@@ -9,7 +9,14 @@ import sys
 # Mock the entire unsloth module
 mock_unsloth = MagicMock()
 mock_FastLanguageModel = MagicMock()
+# Create mock objects for model and tokenizer
+mock_model = MagicMock()
+mock_tokenizer = MagicMock()
+# Configure the from_pretrained method to return the mock model and tokenizer
+mock_FastLanguageModel.from_pretrained.return_value = (mock_model, mock_tokenizer)
+
 mock_unsloth.FastLanguageModel = mock_FastLanguageModel
+
 sys.modules["unsloth"] = mock_unsloth
 sys.modules["unsloth.FastLanguageModel"] = mock_FastLanguageModel
 
