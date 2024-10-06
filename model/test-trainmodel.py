@@ -72,7 +72,15 @@ def mock_mlflow():
 
 
 def test_train_my_model(mock_dataset, mock_trainer, mock_mlflow):
-    mock_start_run, mock_log_param, mock_log_metric, mock_log_model = mock_mlflow
+    (
+        mock_start_run,
+        mock_log_param,
+        mock_log_metric,
+        mock_log_model,
+        mock_mlflowclient,
+        mock_set_experiment,
+        mock_set_tracking_uri,
+    ) = mock_mlflow
     mock_start_run.return_value = MagicMock()
     # Mock the load_dataset function
     with patch("trainmodel.load_dataset", return_value=mock_dataset):
@@ -86,6 +94,9 @@ def test_train_my_model(mock_dataset, mock_trainer, mock_mlflow):
 
     # Assert that mlflow.start_run was called
     mock_start_run.assert_called_once()
+    mock_mlflowclient.assert_called_once()
+    mock_set_experiment.assert_called_once()
+    mock_set_tracking_uri.assert_called_once()
 
     # Assert that mlflow.log_param was called with the correct parameters
     expected_params = {
