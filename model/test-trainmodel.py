@@ -1,88 +1,62 @@
 import pytest
-from unittest import mock
 from unittest.mock import patch, MagicMock
 import mlflow
-from transformers import TrainingArguments
-from trl import SFTTrainer
+import transformers
+
+# Assuming your main script is in a file called 'train_phi3.py'
+from trainmodel import train_my_model, Phi3
 
 
-# Mock the SFTTrainer class used in your function
-class SFTTrainerMock:
-    def __init__(self, *args, **kwargs):
-        pass
-
-    def train(self):
-        # Return mock stats for training
-        return {"metrics": {"train_runtime": 600}}
-
-
-mock_trainer = mock.create_autospec(SFTTrainer)
-mock_trainer.train.return_value = {"train_runtime": 120}
+@pytest.fixture
+def mock_trainer():
+    with patch("transformers.Trainer") as MockTrainer:
+        mock_train = MagicMock()
+        mock_train.return_value.metrics = {"train_runtime": 600}  # 10 minutes
+        MockTrainer.return_value.train = mock_train
+        yield MockTrainer
 
 
-# The function to test
-def test_training_function():
-    # Define some test parameters
-    warmup_steps = 100
-    per_device_train_batch_size = 16
-    max_steps = 1000
-    weight_decay = 0.01
-    max_seq_length = 128
-    gradient_accumulation_steps = 4
-    is_bfloat16_supported = lambda: False
-    model = MagicMock()
-    tokenizer = MagicMock()
-    dataset = MagicMock()
+@pytest.fixture
+def mock_mlflow():
+    with patch("mlflow.log_metric") as mock_log_metric, patch(
+        "mlflow.pyfunc.log_model"
+    ) as mock_log_model:
+        yield mock_log_metric, mock_log_model
 
-    # Mock the mlflow and SFTTrainer
-    with patch("mlflow.start_run"), patch("mlflow.log_param"), patch(
-        "mlflow.log_metric"
-    ), patch("trl.SFTTrainer", mock_trainer):
-        # Run the function under test
-        with mlflow.start_run():
-            mlflow.log_param("warmup_steps", warmup_steps)
-            mlflow.log_param("per_device_train_batch_size", per_device_train_batch_size)
-            mlflow.log_param("max_steps", max_steps)
-            mlflow.log_param("weight_decay", weight_decay)
 
-            # Simulate the trainer initialization
-            trainer = SFTTrainer(
-                model=model,
-                tokenizer=tokenizer,
-                train_dataset=dataset,
-                dataset_text_field="text",
-                max_seq_length=max_seq_length,
-                dataset_num_proc=2,
-                packing=False,
-                args=TrainingArguments(
-                    per_device_train_batch_size=per_device_train_batch_size,
-                    gradient_accumulation_steps=gradient_accumulation_steps,
-                    warmup_steps=warmup_steps,
-                    max_steps=max_steps,
-                    learning_rate=2e-4,
-                    fp16=not is_bfloat16_supported(),
-                    bf16=is_bfloat16_supported(),
-                    logging_steps=1,
-                    optim="adamw_8bit",
-                    weight_decay=weight_decay,
-                    lr_scheduler_type="linear",
-                    seed=3407,
-                    output_dir="outputs",
-                ),
-            )
+def test_train_phi3(mock_trainer, mock_mlflow):
+    mock_log_metric, mock_log_model = mock_mlflow
 
-            # Simulate training
-            trainer_stats = trainer.train()
+    # Mock the is_bfloat16_supported function
+    with patch("train_phi3.is_bfloat16_supported", return_value=False):
+        # Call the training function
+        train_my_model()
 
-            # Simulate logging metrics
-            mlflow.log_metric(
-                "minutesxtraining",
-                round(trainer_stats["metrics"]["train_runtime"] / 60, 2),
-            )
+    # Assert that the trainer was called with the correct arguments
+    mock_trainer.assert_called_once()
+    trainer_args = mock_trainer.call_args[1]["args"]
+    assert trainer_args.learning_rate == 2e-4
+    assert trainer_args.fp16 == True
+    assert trainer_args.bf16 == False
+    assert trainer_args.logging_steps == 1
+    assert trainer_args.optim == "adamw_8bit"
+    assert trainer_args.lr_scheduler_type == "linear"
+    assert trainer_args.seed == 3407
+    assert trainer_args.output_dir == "outputs"
 
-            # Simulate saving the model
-            model.save_pretrained_merged("model", tokenizer)
+    # Assert that the training was performed
+    mock_trainer.return_value.train.assert_called_once()
 
-            # Assertions
-            assert trainer_stats["metrics"]["train_runtime"] == 600
-            mlflow.log_metric.assert_called_with("minutesxtraining", 10)
+    # Assert that MLflow metrics were logged correctly
+    mock_log_metric.assert_called_once_with("minutesxtraining", 10.0)
+
+    # Assert that the model was saved and logged with MLflow
+    mock_log_model.assert_called_once()
+    log_model_args = mock_log_model.call_args[1]
+    assert log_model_args["artifact_path"] == "phi3-instruct"
+    assert isinstance(log_model_args["python_model"], Phi3)
+    assert log_model_args["registered_model_name"] == "PhiModel"
+
+
+if __name__ == "__main__":
+    pytest.main()
