@@ -4,6 +4,7 @@ from transformers import TrainingArguments
 from datasets import Dataset
 import sys
 from trl import SFTTrainer
+import mlflow
 
 # Mock the entire unsloth module
 mock_unsloth = MagicMock()
@@ -46,13 +47,22 @@ def mock_trainer():
 
 
 @pytest.fixture
+def start_run():
+    mlflow.start_run()
+    yield
+    mlflow.end_run()
+
+
+@pytest.fixture
 def mock_mlflow():
-    with patch("mlflow.start_run") as mock_start_run, patch(
+    mock_run = MagicMock()
+    mock_mlflow = MagicMock()
+    with patch("mlflow.start_run", return_value=mock_run) as mock_start_run, patch(
         "mlflow.log_param"
     ) as mock_log_param, patch("mlflow.log_metric") as mock_log_metric, patch(
         "mlflow.pyfunc.log_model"
     ) as mock_log_model, patch(
-        "mlflow.MlflowClient"
+        "mlflow.MlflowClient", return_value=mock_mlflow
     ) as mock_mlflowclient, patch(
         "mlflow.set_experiment"
     ) as mock_set_experiment, patch(
@@ -63,7 +73,7 @@ def mock_mlflow():
 
 def test_train_my_model(mock_dataset, mock_trainer, mock_mlflow):
     mock_start_run, mock_log_param, mock_log_metric, mock_log_model = mock_mlflow
-
+    mock_start_run.return_value = MagicMock()
     # Mock the load_dataset function
     with patch("trainmodel.load_dataset", return_value=mock_dataset):
         # Mock the is_bfloat16_supported function
