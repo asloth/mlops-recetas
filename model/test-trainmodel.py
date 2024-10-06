@@ -1,4 +1,5 @@
 import pytest
+from unittest import mock
 from unittest.mock import patch, MagicMock
 import mlflow
 from transformers import TrainingArguments
@@ -13,6 +14,10 @@ class SFTTrainerMock:
     def train(self):
         # Return mock stats for training
         return {"metrics": {"train_runtime": 600}}
+
+
+mock_trainer = mock.create_autospec(SFTTrainer)
+mock_trainer.train.return_value = {"train_runtime": 120}
 
 
 # The function to test
@@ -32,7 +37,7 @@ def test_training_function():
     # Mock the mlflow and SFTTrainer
     with patch("mlflow.start_run"), patch("mlflow.log_param"), patch(
         "mlflow.log_metric"
-    ), patch("trl.SFTTrainer", SFTTrainerMock):
+    ), patch("trl.SFTTrainer", mock_trainer):
         # Run the function under test
         with mlflow.start_run():
             mlflow.log_param("warmup_steps", warmup_steps)
