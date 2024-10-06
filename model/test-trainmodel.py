@@ -3,6 +3,7 @@ from unittest.mock import patch, MagicMock
 from transformers import TrainingArguments
 from datasets import Dataset
 import sys
+from trl import SFTTrainer
 
 # Mock the entire unsloth module
 mock_unsloth = MagicMock()
@@ -37,7 +38,7 @@ def mock_dataset():
 
 @pytest.fixture
 def mock_trainer():
-    with patch("trainmodel.SFTTrainer") as MockTrainer:
+    with patch("trl.SFTTrainer") as MockTrainer:
         mock_train = MagicMock()
         mock_train.return_value.metrics = {"train_runtime": 600}  # 10 minutes
         MockTrainer.return_value.train = mock_train
