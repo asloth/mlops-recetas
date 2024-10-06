@@ -50,8 +50,10 @@ def mock_mlflow():
         "mlflow.log_param"
     ) as mock_log_param, patch("mlflow.log_metric") as mock_log_metric, patch(
         "mlflow.pyfunc.log_model"
-    ) as mock_log_model:
-        yield mock_start_run, mock_log_param, mock_log_metric, mock_log_model
+    ) as mock_log_model, patch(
+        "mlflow.MlflowClient"
+    ) as mock_mlflowclient:
+        yield mock_start_run, mock_log_param, mock_log_metric, mock_log_model, mock_mlflowclient
 
 
 def test_train_my_model(mock_dataset, mock_trainer, mock_mlflow):
