@@ -6,11 +6,12 @@ from datasets import Dataset
 import transformers
 
 # Assuming your main script is in a file called 'train_script.py'
-from train_script import (
+from trainmodel import (
     train_my_model,
     formatting_prompts_func,
     Phi3,
     is_bfloat16_supported,
+    max_seq_length,
 )
 
 
