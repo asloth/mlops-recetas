@@ -1,32 +1,26 @@
 import pytest
 from unittest.mock import patch, MagicMock
-import mlflow
 from transformers import TrainingArguments
 from datasets import Dataset
-import transformers
 import sys
-from trl import SFTTrainer
 
 # Mock the entire unsloth module
 mock_unsloth = MagicMock()
 mock_FastLanguageModel = MagicMock()
+
 # Create mock objects for model and tokenizer
 mock_model = MagicMock()
 mock_tokenizer = MagicMock()
+
 # Configure the from_pretrained method to return the mock model and tokenizer
 mock_FastLanguageModel.from_pretrained.return_value = (mock_model, mock_tokenizer)
 
 mock_unsloth.FastLanguageModel = mock_FastLanguageModel
-
 sys.modules["unsloth"] = mock_unsloth
 sys.modules["unsloth.FastLanguageModel"] = mock_FastLanguageModel
 
-# Mock MLflow
-mock_mlflow = MagicMock()
-sys.modules["mlflow"] = mock_mlflow
-
 # Now patch the import in your script
-with patch.dict("sys.modules", {"unsloth": mock_unsloth, "mlflow": mock_mlflow}):
+with patch.dict("sys.modules", {"unsloth": mock_unsloth}):
     # Import your script here
     from trainmodel import (
         train_my_model,
@@ -50,7 +44,19 @@ def mock_trainer():
         yield MockTrainer
 
 
-def test_train_my_model(mock_dataset, mock_trainer):
+@pytest.fixture
+def mock_mlflow():
+    with patch("mlflow.start_run") as mock_start_run, patch(
+        "mlflow.log_param"
+    ) as mock_log_param, patch("mlflow.log_metric") as mock_log_metric, patch(
+        "mlflow.pyfunc.log_model"
+    ) as mock_log_model:
+        yield mock_start_run, mock_log_param, mock_log_metric, mock_log_model
+
+
+def test_train_my_model(mock_dataset, mock_trainer, mock_mlflow):
+    mock_start_run, mock_log_param, mock_log_metric, mock_log_model = mock_mlflow
+
     # Mock the load_dataset function
     with patch("trainmodel.load_dataset", return_value=mock_dataset):
         # Mock the is_bfloat16_supported function
@@ -62,7 +68,7 @@ def test_train_my_model(mock_dataset, mock_trainer):
     mock_FastLanguageModel.from_pretrained.assert_called_once()
 
     # Assert that mlflow.start_run was called
-    mock_mlflow.start_run.assert_called_once()
+    mock_start_run.assert_called_once()
 
     # Assert that mlflow.log_param was called with the correct parameters
     expected_params = {
@@ -72,7 +78,7 @@ def test_train_my_model(mock_dataset, mock_trainer):
         "weight_decay": 0.01,
     }
     for param, value in expected_params.items():
-        mock_mlflow.log_param.assert_any_call(param, value)
+        mock_log_param.assert_any_call(param, value)
 
     # Assert that the dataset.map method was called with formatting_prompts_func
     mock_dataset.map.assert_called_once_with(formatting_prompts_func, batched=True)
@@ -106,7 +112,7 @@ def test_train_my_model(mock_dataset, mock_trainer):
     mock_trainer.return_value.train.assert_called_once()
 
     # Assert that MLflow metrics were logged correctly
-    mock_mlflow.log_metric.assert_called_with("minutesxtraining", 10.0)
+    mock_log_metric.assert_called_with("minutesxtraining", 10.0)
 
     # Assert that the model was saved
     mock_model.save_pretrained_merged.assert_called_once_with(
@@ -116,8 +122,8 @@ def test_train_my_model(mock_dataset, mock_trainer):
     )
 
     # Assert that the model was logged with MLflow
-    mock_mlflow.pyfunc.log_model.assert_called_once()
-    log_model_args = mock_mlflow.pyfunc.log_model.call_args[1]
+    mock_log_model.assert_called_once()
+    log_model_args = mock_log_model.call_args[1]
     assert log_model_args["artifact_path"] == "phi3-instruct"
     assert isinstance(log_model_args["python_model"], Phi3)
     assert log_model_args["artifacts"] == {"snapshot": "./model"}
