@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 import mlflow
 from transformers import TrainingArguments
+from trl import SFTTrainer
 
 
 # Mock the SFTTrainer class used in your function
@@ -31,7 +32,7 @@ def test_training_function():
     # Mock the mlflow and SFTTrainer
     with patch("mlflow.start_run"), patch("mlflow.log_param"), patch(
         "mlflow.log_metric"
-    ), patch("SFTTrainer", SFTTrainerMock):
+    ), patch("SFTTrainer", SFTTrainerMock), patch("model.save_pretrained_merged"):
         # Run the function under test
         with mlflow.start_run():
             mlflow.log_param("warmup_steps", warmup_steps)
@@ -40,7 +41,7 @@ def test_training_function():
             mlflow.log_param("weight_decay", weight_decay)
 
             # Simulate the trainer initialization
-            trainer = SFTTrainerMock(
+            trainer = SFTTrainer(
                 model=model,
                 tokenizer=tokenizer,
                 train_dataset=dataset,
