@@ -8,11 +8,6 @@ import mlflow
 from unittest.mock import create_autospec
 
 
-# Define the tokenize function at the top level
-def tokenize(example, tokenizer):
-    return tokenizer(example["text"])
-
-
 # Mock the entire unsloth module
 mock_unsloth = MagicMock()
 mock_FastLanguageModel = MagicMock()
@@ -44,14 +39,14 @@ def mock_dataset():
     return MagicMock(spec=Dataset)
 
 
+class PicklableMock:
+    def train(self):
+        return {"train_runtime": 600}  # 10 minutes
+
+
 @pytest.fixture
 def mock_trainer():
-    with patch("trl.SFTTrainer") as MockTrainer:
-
-        def mock_train():
-            return {"train_runtime": 600}  # 10 minutes
-
-        MockTrainer.return_value.train.side_effect = mock_train
+    with patch("trl.SFTTrainer", return_value=PicklableMock()) as MockTrainer:
         yield MockTrainer
 
 
