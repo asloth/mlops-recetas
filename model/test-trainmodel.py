@@ -7,7 +7,7 @@ import sys
 from trl import SFTTrainer
 import mlflow
 from unittest.mock import create_autospec
-
+from pickle import dumps
 
 # Mock the entire unsloth module
 mock_unsloth = mock.MagicMock()
@@ -116,6 +116,8 @@ def test_train_my_model():
             mock_trainer.train.return_value = mock.MagicMock(
                 metrics={"train_runtime": 600}
             )
+            mock_trainer.__class__ = mock.MagicMock
+            dumps(mock_trainer)
 
             # Patch the SFTTrainer to return our mock trainer
             with patch("trl.SFTTrainer", return_value=mock_trainer):
