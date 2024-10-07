@@ -22,16 +22,12 @@ mock_FastLanguageModel.from_pretrained.return_value = (mock_model, mock_tokenize
 mock_unsloth.FastLanguageModel = mock_FastLanguageModel
 sys.modules["unsloth"] = mock_unsloth
 sys.modules["unsloth.FastLanguageModel"] = mock_FastLanguageModel
+sys.modules["unsloth.is_bfloat16_supported"] = MagicMock()
 
 # Now patch the import in your script
 with patch.dict("sys.modules", {"unsloth": mock_unsloth}):
     # Import your script here
-    from trainmodel import (
-        train_my_model,
-        formatting_prompts_func,
-        Phi3,
-        is_bfloat16_supported,
-    )
+    from trainmodel import train_my_model, formatting_prompts_func, Phi3
 
 
 @pytest.fixture
@@ -111,9 +107,9 @@ def test_train_my_model():
     max_seq_length = 512
 
     # Mock the formatting_prompts_func
-    with patch("__main__.formatting_prompts_func", return_value=MagicMock()):
+    with patch("trainmodel.formatting_prompts_func", return_value=MagicMock()):
         # Mock the is_bfloat16_supported function
-        with patch("__main__.is_bfloat16_supported", return_value=False):
+        with patch("unsloth.is_bfloat16_supported", return_value=False):
             # Create a mock trainer with a mock train method
             mock_trainer = MagicMock()
             mock_trainer.train.return_value = MagicMock(metrics={"train_runtime": 600})
