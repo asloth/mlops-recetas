@@ -1,5 +1,6 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
+from unittest import mock
 from transformers import TrainingArguments
 from datasets import Dataset
 import sys
@@ -9,12 +10,12 @@ from unittest.mock import create_autospec
 
 
 # Mock the entire unsloth module
-mock_unsloth = MagicMock()
-mock_FastLanguageModel = MagicMock()
+mock_unsloth = mock.MagicMock()
+mock_FastLanguageModel = mock.MagicMock()
 
 # Create mock objects for model and tokenizer
-mock_model = MagicMock()
-mock_tokenizer = MagicMock()
+mock_model = mock.MagicMock()
+mock_tokenizer = mock.MagicMock()
 
 # Configure the from_pretrained method to return the mock model and tokenizer
 mock_FastLanguageModel.from_pretrained.return_value = (mock_model, mock_tokenizer)
@@ -22,7 +23,7 @@ mock_FastLanguageModel.from_pretrained.return_value = (mock_model, mock_tokenize
 mock_unsloth.FastLanguageModel = mock_FastLanguageModel
 sys.modules["unsloth"] = mock_unsloth
 sys.modules["unsloth.FastLanguageModel"] = mock_FastLanguageModel
-sys.modules["unsloth.is_bfloat16_supported"] = MagicMock()
+sys.modules["unsloth.is_bfloat16_supported"] = mock.MagicMock()
 
 # Now patch the import in your script
 with patch.dict("sys.modules", {"unsloth": mock_unsloth}):
@@ -32,7 +33,7 @@ with patch.dict("sys.modules", {"unsloth": mock_unsloth}):
 
 @pytest.fixture
 def mock_dataset():
-    return MagicMock(spec=Dataset)
+    return mock.MagicMock(spec=Dataset)
 
 
 class PicklableMock:
@@ -76,9 +77,9 @@ def mock_dependencies():
     with patch("transformers.AutoTokenizer.from_pretrained") as mock_tokenizer, patch(
         "transformers.AutoModelForCausalLM.from_pretrained"
     ) as mock_model, patch("datasets.load_dataset") as mock_load_dataset, patch(
-        "mlflow.start_run", return_value=MagicMock()
+        "mlflow.start_run", return_value=mock.MagicMock()
     ), patch(
-        "mlflow.MlflowClient", return_value=MagicMock()
+        "mlflow.MlflowClient", return_value=mock.MagicMock()
     ), patch(
         "mlflow.set_tracking_uri"
     ), patch(
@@ -92,9 +93,9 @@ def mock_dependencies():
     ):
 
         # Set up mock returns
-        mock_tokenizer.return_value = MagicMock()
-        mock_model.return_value = MagicMock()
-        mock_load_dataset.return_value = MagicMock()
+        mock_tokenizer.return_value = mock.MagicMock()
+        mock_model.return_value = mock.MagicMock()
+        mock_load_dataset.return_value = mock.MagicMock()
 
         yield
 
@@ -102,17 +103,19 @@ def mock_dependencies():
 def test_train_my_model():
     # Mock the global variables that are used in the function
     global model, tokenizer, max_seq_length
-    model = MagicMock()
-    tokenizer = MagicMock()
+    model = mock.MagicMock()
+    tokenizer = mock.MagicMock()
     max_seq_length = 512
 
     # Mock the formatting_prompts_func
-    with patch("trainmodel.formatting_prompts_func", return_value=MagicMock()):
+    with patch("trainmodel.formatting_prompts_func", return_value=mock.MagicMock()):
         # Mock the is_bfloat16_supported function
         with patch("unsloth.is_bfloat16_supported", return_value=False):
             # Create a mock trainer with a mock train method
-            mock_trainer = MagicMock()
-            mock_trainer.train.return_value = MagicMock(metrics={"train_runtime": 600})
+            mock_trainer = mock.MagicMock()
+            mock_trainer.train.return_value = mock.MagicMock(
+                metrics={"train_runtime": 600}
+            )
 
             # Patch the SFTTrainer to return our mock trainer
             with patch("trl.SFTTrainer", return_value=mock_trainer):
