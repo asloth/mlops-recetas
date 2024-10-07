@@ -47,9 +47,11 @@ def mock_dataset():
 @pytest.fixture
 def mock_trainer():
     with patch("trl.SFTTrainer") as MockTrainer:
-        mock_train = create_autospec(MockTrainer.return_value.train)
-        mock_train.return_value = {"train_runtime": 600}  # 10 minutes
-        MockTrainer.return_value.train = mock_train
+
+        def mock_train():
+            return {"train_runtime": 600}  # 10 minutes
+
+        MockTrainer.return_value.train.side_effect = mock_train
         yield MockTrainer
 
 
