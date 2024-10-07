@@ -5,6 +5,13 @@ from datasets import Dataset
 import sys
 from trl import SFTTrainer
 import mlflow
+from unittest.mock import create_autospec
+
+
+# Define the tokenize function at the top level
+def tokenize(example, tokenizer):
+    return tokenizer(example["text"])
+
 
 # Mock the entire unsloth module
 mock_unsloth = MagicMock()
@@ -40,8 +47,8 @@ def mock_dataset():
 @pytest.fixture
 def mock_trainer():
     with patch("trl.SFTTrainer") as MockTrainer:
-        mock_train = MagicMock()
-        mock_train.return_value.metrics = {"train_runtime": 600}  # 10 minutes
+        mock_train = create_autospec(MockTrainer.return_value.train)
+        mock_train.return_value = {"train_runtime": 600}  # 10 minutes
         MockTrainer.return_value.train = mock_train
         yield MockTrainer
 
