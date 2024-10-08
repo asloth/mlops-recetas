@@ -41,10 +41,10 @@ class PicklableMock:
         return {"train_runtime": 600}  # 10 minutes
 
 
-# @pytest.fixture
-# def mock_trainer():
-#    with patch("trl.SFTTrainer", return_value=PicklableMock()) as MockTrainer:
-#        yield MockTrainer
+@pytest.fixture
+def mock_trainer():
+    with patch("trl.SFTTrainer", return_value=PicklableMock()) as MockTrainer:
+        yield MockTrainer
 
 
 @pytest.fixture
@@ -111,18 +111,10 @@ def test_train_my_model():
     with patch("trainmodel.formatting_prompts_func", return_value=mock.MagicMock()):
         # Mock the is_bfloat16_supported function
         with patch("unsloth.is_bfloat16_supported", return_value=False):
-            # Create a mock trainer with a mock train method
-            # mock_trainer = mock.MagicMock()
-            # mock_trainer.train.return_value = mock.MagicMock(
-            #    metrics={"train_runtime": 600}
-            # )
-            # mock_trainer.__class__ = mock.MagicMock
-            # dumps(mock_trainer)
-
             # Patch the SFTTrainer to return our mock trainer
-            # with patch("trl.SFTTrainer", return_value=mock_trainer):
-            # Call the function we want to test
-            train_my_model()
+            with patch("trl.SFTTrainer", return_value=mock_trainer):
+                # Call the function we want to test
+                train_my_model()
 
     # Assert that MLflow functions were called
     mlflow.set_tracking_uri.assert_called_once_with("http://mlflow-server:5000")
