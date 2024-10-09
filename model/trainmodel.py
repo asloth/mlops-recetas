@@ -210,24 +210,23 @@ def train_my_model():
         mlflow.log_param("weight_decay", weight_decay)
 
         print("Loading training args")
-        args1 = (
-            TrainingArguments(
-                per_device_train_batch_size=per_device_train_batch_size,
-                gradient_accumulation_steps=gradient_accumulation_steps,
-                warmup_steps=warmup_steps,
-                max_steps=max_steps,
-                learning_rate=2e-4,
-                fp16=not is_bfloat16_supported(),
-                bf16=is_bfloat16_supported(),
-                logging_steps=1,
-                optim="adamw_8bit",
-                weight_decay=weight_decay,
-                lr_scheduler_type="linear",
-                seed=3407,
-                output_dir="outputs",
-                remove_unused_columns=True,
-            ),
+        args1 = TrainingArguments(
+            per_device_train_batch_size=per_device_train_batch_size,
+            gradient_accumulation_steps=gradient_accumulation_steps,
+            warmup_steps=warmup_steps,
+            max_steps=max_steps,
+            learning_rate=2e-4,
+            fp16=not is_bfloat16_supported(),
+            bf16=is_bfloat16_supported(),
+            logging_steps=1,
+            optim="adamw_8bit",
+            weight_decay=weight_decay,
+            lr_scheduler_type="linear",
+            seed=3407,
+            output_dir="outputs",
+            remove_unused_columns=True,
         )
+
         print("Loading trainer")
         trainer = SFTTrainer(
             model=model,
