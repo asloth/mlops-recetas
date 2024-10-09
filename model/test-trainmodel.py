@@ -35,11 +35,6 @@ with patch.dict(
 
 
 @pytest.fixture
-def mock_dataset():
-    return MagicMock(spec=Dataset)
-
-
-@pytest.fixture
 def mock_trainer():
     with patch("trl.SFTTrainer") as MockTrainer:
         mock_train = MagicMock()
@@ -48,7 +43,7 @@ def mock_trainer():
         yield MockTrainer
 
 
-def test_train_my_model(mock_dataset, mock_trainer):
+def test_train_my_model(mock_trainer):
     # Mock the load_dataset function
     # with patch("datasets.load_dataset", return_value=mock_dataset):
     # Mock the is_bfloat16_supported function
