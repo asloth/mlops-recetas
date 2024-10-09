@@ -56,13 +56,14 @@ def mock_dataset():
 
 def test_train_my_model(mock_trainer, mock_dataset):
     # Mock the load_dataset function
-    with patch("datasets.load_dataset", return_value=mock_dataset), patch(
-        "trainmodel.formatting_prompts_func", return_value=formatting_prompts_func
-    ):
-        # Mock the is_bfloat16_supported function
-        # with patch("unsloth.is_bfloat16_supported", return_value=False):
-        # Call the training function
-        train_my_model()
+    with patch("datasets.load_dataset", return_value=mock_dataset):
+        with patch(
+            "trainmodel.formatting_prompts_func", return_value=formatting_prompts_func
+        ):
+            # Mock the is_bfloat16_supported function
+            # with patch("unsloth.is_bfloat16_supported", return_value=False):
+            # Call the training function
+            train_my_model()
 
     # Assert that FastLanguageModel.from_pretrained was called
     mock_FastLanguageModel.from_pretrained.assert_called_once()
