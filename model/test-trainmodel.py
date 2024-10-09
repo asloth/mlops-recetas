@@ -15,26 +15,25 @@ mock_mlflow = MagicMock()
 
 
 # Patch necessary modules and imports
-@pytest.fixture(autouse=True)
-def mock_imports():
-    with patch.dict(
-        "sys.modules",
-        {
-            "mlflow": mock_mlflow,
-            "unsloth": MagicMock(),
-            "unsloth.FastLanguageModel": mock_FastLanguageModel,
-        },
-    ):
-        yield
-
+# @pytest.fixture(autouse=True)
+# def mock_imports():
+with patch.dict(
+    "sys.modules",
+    {
+        "mlflow": mock_mlflow,
+        "unsloth": MagicMock(),
+        "unsloth.FastLanguageModel": mock_FastLanguageModel,
+        "unsloth.is_bfloat16_supported": MagicMock(),
+    },
+):
+    from trainmodel import (
+        train_my_model,
+        formatting_prompts_func,
+        Phi3,
+        is_bfloat16_supported,
+    )
 
 # Import your script here, after setting up the mocks
-from trainmodel import (
-    train_my_model,
-    formatting_prompts_func,
-    Phi3,
-    is_bfloat16_supported,
-)
 
 
 @pytest.fixture
