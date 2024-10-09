@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
 import mlflow
+import sys
 
 
 class TestTrainMyModel(unittest.TestCase):
@@ -33,11 +34,27 @@ class TestTrainMyModel(unittest.TestCase):
             "train_runtime": 300
         }  # Mocked runtime for metrics
 
-        # Call the function to be tested
-        from trainmodel import train_my_model
+        # Mock the entire unsloth module
+        mock_unsloth = MagicMock()
+        mock_FastLanguageModel = MagicMock()
+        # Create mock objects for model and tokenizer
+        mock_model = MagicMock()
+        mock_tokenizer = MagicMock()
+        # Configure the from_pretrained method to return the mock model and tokenizer
+        mock_FastLanguageModel.from_pretrained.return_value = (
+            mock_model,
+            mock_tokenizer,
+        )
 
-        train_my_model()
+        mock_unsloth.FastLanguageModel = mock_FastLanguageModel
+        sys.modules["unsloth"] = mock_unsloth
+        sys.modules["unsloth.FastLanguageModel"] = mock_FastLanguageModel
+        sys.modules["unsloth.is_bfloat16_supported"] = MagicMock()
 
+        with patch.dict("sys.modules", {"unsloth": mock_unsloth}):
+            from trainmodel import train_my_model, formatting_prompts_func, Phi3
+
+            train_my_model()
         # Verify that load_dataset was called
         mock_load_dataset.assert_called_once_with(
             "somosnlp/recetasdelaabuela_it", split="train"
