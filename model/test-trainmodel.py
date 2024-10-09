@@ -24,7 +24,7 @@ with patch.dict(
         "mlflow": MagicMock(),
         "unsloth": mock_unsloth,
         "unsloth.FastLanguageModel": mock_FastLanguageModel,
-        "unsloth.is_bfloat16_supported": MagicMock(),
+        "unsloth.is_bfloat16_supported": False,
     },
 ):
     from trainmodel import (
@@ -52,9 +52,9 @@ def test_train_my_model(mock_dataset, mock_trainer):
     # Mock the load_dataset function
     with patch("datasets.load_dataset", return_value=mock_dataset):
         # Mock the is_bfloat16_supported function
-        with patch("unsloth.is_bfloat16_supported", return_value=False):
-            # Call the training function
-            train_my_model()
+        # with patch("unsloth.is_bfloat16_supported", return_value=False):
+        # Call the training function
+        train_my_model()
 
     # Assert that FastLanguageModel.from_pretrained was called
     mock_FastLanguageModel.from_pretrained.assert_called_once()
