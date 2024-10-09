@@ -209,16 +209,9 @@ def train_my_model():
         mlflow.log_param("max_steps", max_steps)
         mlflow.log_param("weight_decay", weight_decay)
 
-        print("Loading trainer")
-        trainer = SFTTrainer(
-            model=model,
-            tokenizer=tokenizer,
-            train_dataset=dataset,
-            dataset_text_field="text",
-            max_seq_length=max_seq_length,
-            dataset_num_proc=2,
-            packing=False,  # Can make training 5x faster for short sequences.
-            args=TrainingArguments(
+        print("Loading training args")
+        args1 = (
+            TrainingArguments(
                 per_device_train_batch_size=per_device_train_batch_size,
                 gradient_accumulation_steps=gradient_accumulation_steps,
                 warmup_steps=warmup_steps,
@@ -233,6 +226,17 @@ def train_my_model():
                 seed=3407,
                 output_dir="outputs",
             ),
+        )
+        print("Loading trainer")
+        trainer = SFTTrainer(
+            model=model,
+            tokenizer=tokenizer,
+            train_dataset=dataset,
+            dataset_text_field="text",
+            max_seq_length=max_seq_length,
+            dataset_num_proc=2,
+            packing=False,  # Can make training 5x faster for short sequences.
+            args=args1,
         )
         print("Begin training")
         trainer_stats = trainer.train()
