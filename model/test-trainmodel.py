@@ -58,11 +58,10 @@ def test_train_my_model(mock_trainer, mock_dataset):
     # Mock the load_dataset function
     with patch("datasets.load_dataset", return_value=mock_dataset):
         with patch("trl.SFTTrainer", return_value=mock_trainer):
-            with patch("unsloth.is_bfloat16_supported", return_value=False):
-                # Mock the is_bfloat16_supported function
-                # with patch("unsloth.is_bfloat16_supported", return_value=False):
-                # Call the training function
-                train_my_model()
+            # Mock the is_bfloat16_supported function
+            # with patch("unsloth.is_bfloat16_supported", return_value=False):
+            # Call the training function
+            train_my_model()
 
     # Assert that FastLanguageModel.from_pretrained was called
     mock_FastLanguageModel.from_pretrained.assert_called_once()
