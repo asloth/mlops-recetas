@@ -54,7 +54,7 @@ def mock_dataset():
 
 def test_train_my_model(mock_trainer, mock_dataset):
     # Mock the load_dataset function
-    with patch("datasets.load_dataset", return_value=mock_dataset):
+    with patch("dataset", return_value=mock_dataset):
         # Mock the is_bfloat16_supported function
         # with patch("unsloth.is_bfloat16_supported", return_value=False):
         # Call the training function
