@@ -5,16 +5,14 @@ import mlflow
 
 class TestTrainMyModel(unittest.TestCase):
 
-    @patch("trainmodel.SFTTrainer")  # Patch the SFTTrainer
-    @patch("trainmodel.load_dataset")  # Patch the dataset loader
-    @patch("trainmodel.mlflow.start_run")  # Patch mlflow.start_run
-    @patch("trainmodel.mlflow.log_param")  # Patch mlflow.log_param
-    @patch("trainmodel.mlflow.log_metric")  # Patch mlflow.log_metric
-    @patch("trainmodel.mlflow.pyfunc.log_model")  # Patch model logging
-    @patch("trainmodel.FastLanguageModel")  # Patch the unsloth FastLanguageModel
-    @patch(
-        "trainmodel.is_bfloat16_supported"
-    )  # Patch the unsloth is_bfloat16_supported
+    @patch("trl.SFTTrainer")  # Patch the SFTTrainer
+    @patch("datasets.load_dataset")  # Patch the dataset loader
+    @patch("mlflow.start_run")  # Patch mlflow.start_run
+    @patch("mlflow.log_param")  # Patch mlflow.log_param
+    @patch("mlflow.log_metric")  # Patch mlflow.log_metric
+    @patch("mlflow.pyfunc.log_model")  # Patch model logging
+    @patch("unsloth.FastLanguageModel")  # Patch the unsloth FastLanguageModel
+    @patch("unsloth.is_bfloat16_supported")  # Patch the unsloth is_bfloat16_supported
     def test_train_my_model(
         self,
         mock_is_bfloat16_supported,
