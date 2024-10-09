@@ -13,6 +13,8 @@ mock_FastLanguageModel = MagicMock()
 mock_FastLanguageModel.from_pretrained.return_value = (mock_model, mock_tokenizer)
 
 
+mock_unsloth = MagicMock()
+mock_unsloth.FastLanguageModel = mock_FastLanguageModel
 # Patch necessary modules and imports
 # @pytest.fixture(autouse=True)
 # def mock_imports():
@@ -20,7 +22,7 @@ with patch.dict(
     "sys.modules",
     {
         "mlflow": MagicMock(),
-        "unsloth": MagicMock(),
+        "unsloth": mock_unsloth,
         "unsloth.FastLanguageModel": mock_FastLanguageModel,
         "unsloth.is_bfloat16_supported": MagicMock(),
     },
