@@ -234,10 +234,9 @@ def train_my_model():
             train_dataset=dataset,
             dataset_text_field="text",
             max_seq_length=max_seq_length,
-            dataset_num_proc=2,
+            dataset_num_proc=1,
             packing=False,  # Can make training 5x faster for short sequences.
             args=args1,
-            dataset_num_proc=1,
         )
         print("Begin training")
         trainer_stats = trainer.train()
