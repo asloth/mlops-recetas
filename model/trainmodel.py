@@ -225,6 +225,7 @@ def train_my_model():
                 lr_scheduler_type="linear",
                 seed=3407,
                 output_dir="outputs",
+                remove_unused_columns=True,
             ),
         )
         print("Loading trainer")
