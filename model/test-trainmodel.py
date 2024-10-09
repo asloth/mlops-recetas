@@ -47,14 +47,18 @@ def mock_trainer():
 def mock_dataset():
     mock_dataset = MagicMock()
     mock_dataset.map.return_value = {
-        "text": ["<|user|>Hello<|end|><|assistant|>Hi<|end|>"]
+        "text": [
+            "<|user|>What is Neo4j?<|end|><|assistant|>Neo4j is a graph database.<|end|>"
+        ]
     }
     return mock_dataset
 
 
 def test_train_my_model(mock_trainer, mock_dataset):
     # Mock the load_dataset function
-    with patch("dataset.map", return_value=mock_dataset):
+    with patch("datasets.load_dataset", return_value=mock_dataset), patch(
+        "trainmodel.formatting_prompts_func"
+    ):
         # Mock the is_bfloat16_supported function
         # with patch("unsloth.is_bfloat16_supported", return_value=False):
         # Call the training function
