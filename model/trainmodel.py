@@ -237,6 +237,7 @@ def train_my_model():
             dataset_num_proc=2,
             packing=False,  # Can make training 5x faster for short sequences.
             args=args1,
+            dataset_num_proc=1,
         )
         print("Begin training")
         trainer_stats = trainer.train()
