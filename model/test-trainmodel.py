@@ -54,6 +54,13 @@ def mock_dataset():
     return mock_dataset
 
 
+@pytest.fixture
+def mock_formatting_func_return(examples):
+    return {
+        "text": ["<|user|>Sample question?<|end|><|assistant|>Sample answer.<|end|>"]
+    }
+
+
 def test_train_my_model(mock_trainer, mock_dataset):
     # Mock the load_dataset function
     with patch.dict(
@@ -64,7 +71,10 @@ def test_train_my_model(mock_trainer, mock_dataset):
             "unsloth.is_bfloat16_supported": False,
         },
     ):
-        with patch("trainmodel.formatting_prompts_func", return_value=MagicMock()):
+        with patch(
+            "trainmodel.formatting_prompts_func",
+            return_value=mock_formatting_func_return,
+        ):
             with patch("datasets.load_dataset", return_value=mock_dataset):
                 with patch("trl.SFTTrainer", return_value=mock_trainer):
                     # Mock the is_bfloat16_supported function
