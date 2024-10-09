@@ -108,13 +108,14 @@ def test_train_my_model():
     max_seq_length = 512
 
     # Mock the formatting_prompts_func
-    with patch("trainmodel.formatting_prompts_func", return_value=mock.MagicMock()):
-        # Mock the is_bfloat16_supported function
-        with patch("unsloth.is_bfloat16_supported", return_value=False):
-            # Patch the SFTTrainer to return our mock trainer
-            with patch("trl.SFTTrainer", return_value=mock_trainer):
-                # Call the function we want to test
-                train_my_model()
+    with patch.dict("sys.modules", {"unsloth": mock_unsloth}):
+        with patch("trainmodel.formatting_prompts_func", return_value=mock.MagicMock()):
+            # Mock the is_bfloat16_supported function
+            with patch("unsloth.is_bfloat16_supported", return_value=False):
+                # Patch the SFTTrainer to return our mock trainer
+                with patch("trl.SFTTrainer", return_value=mock_trainer):
+                    # Call the function we want to test
+                    train_my_model()
 
     # Assert that MLflow functions were called
     mlflow.set_tracking_uri.assert_called_once_with("http://mlflow-server:5000")
