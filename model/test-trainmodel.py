@@ -59,7 +59,6 @@ def test_train_my_model(mock_trainer, mock_dataset):
     with patch.dict(
         "sys.modules",
         {
-            "mlflow": MagicMock(),
             "unsloth": mock_unsloth,
             "unsloth.FastLanguageModel": mock_FastLanguageModel,
             "unsloth.is_bfloat16_supported": False,
