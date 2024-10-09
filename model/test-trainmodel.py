@@ -1,88 +1,129 @@
-import unittest
+import pytest
 from unittest.mock import patch, MagicMock
-import mlflow
+from transformers import TrainingArguments
+from datasets import Dataset
+import sys
+
+# Mock FastLanguageModel
+mock_FastLanguageModel = MagicMock()
+mock_model = MagicMock()
+mock_tokenizer = MagicMock()
+mock_FastLanguageModel.from_pretrained.return_value = (mock_model, mock_tokenizer)
+
+# Mock entire mlflow module
+mock_mlflow = MagicMock()
 
 
-class TestTrainMyModel(unittest.TestCase):
-
-    @patch("trl.SFTTrainer")  # Patch the SFTTrainer
-    @patch("datasets.load_dataset")  # Patch the dataset loader
-    @patch("mlflow.start_run")  # Patch mlflow.start_run
-    @patch("mlflow.log_param")  # Patch mlflow.log_param
-    @patch("mlflow.log_metric")  # Patch mlflow.log_metric
-    @patch("mlflow.pyfunc.log_model")  # Patch model logging
-    @patch("unsloth.FastLanguageModel")  # Patch the unsloth FastLanguageModel
-    @patch("unsloth.is_bfloat16_supported")  # Patch the unsloth is_bfloat16_supported
-    def test_train_my_model(
-        self,
-        mock_is_bfloat16_supported,
-        mock_fast_language_model,
-        mock_log_model,
-        mock_log_metric,
-        mock_log_param,
-        mock_start_run,
-        mock_load_dataset,
-        mock_sft_trainer,
+# Patch necessary modules and imports
+@pytest.fixture(autouse=True)
+def mock_imports():
+    with patch.dict(
+        "sys.modules",
+        {
+            "mlflow": mock_mlflow,
+            "unsloth": MagicMock(),
+            "unsloth.FastLanguageModel": mock_FastLanguageModel,
+        },
     ):
-        # Mock dataset returned by load_dataset
-        mock_dataset = MagicMock()
-        mock_load_dataset.return_value = mock_dataset
+        yield
 
-        # Mock the FastLanguageModel's behavior
-        mock_model = MagicMock()
-        mock_tokenizer = MagicMock()
-        mock_fast_language_model.from_pretrained.return_value = (
-            mock_model,
-            mock_tokenizer,
-        )
 
-        # Mock the SFTTrainer behavior
-        mock_trainer = MagicMock()
-        mock_sft_trainer.return_value = mock_trainer
+# Import your script here, after setting up the mocks
+from trainmodel import (
+    train_my_model,
+    formatting_prompts_func,
+    Phi3,
+    is_bfloat16_supported,
+)
 
-        # Mock the training process return
-        mock_trainer.train.return_value = {
-            "train_runtime": 300
-        }  # Mocked runtime for metrics
 
-        # Mock is_bfloat16_supported to return False for testing purposes
-        mock_is_bfloat16_supported.return_value = False
+@pytest.fixture
+def mock_dataset():
+    return MagicMock(spec=Dataset)
 
-        # Call the function to be tested
-        from trainmodel import train_my_model
 
-        train_my_model()
+@pytest.fixture
+def mock_trainer():
+    with patch("trainmodel.SFTTrainer") as MockTrainer:
+        mock_train = MagicMock()
+        mock_train.return_value.metrics = {"train_runtime": 600}  # 10 minutes
+        MockTrainer.return_value.train = mock_train
+        yield MockTrainer
 
-        # Verify that load_dataset was called
-        mock_load_dataset.assert_called_once_with(
-            "somosnlp/recetasdelaabuela_it", split="train"
-        )
 
-        # Verify that FastLanguageModel was called correctly
-        mock_fast_language_model.from_pretrained.assert_called_once_with(
-            model_name="unsloth/Phi-3.5-mini-instruct",
-            max_seq_length=2048,
-            dtype=None,
-            load_in_4bit=True,
-        )
+def test_train_my_model(mock_dataset, mock_trainer):
+    # Mock the load_dataset function
+    with patch("datasets.load_dataset", return_value=mock_dataset):
+        # Mock the is_bfloat16_supported function
+        with patch("unsloth.is_bfloat16_supported", return_value=False):
+            # Call the training function
+            train_my_model()
 
-        # Verify that SFTTrainer was initialized correctly
-        mock_sft_trainer.assert_called_once()
+    # Assert that FastLanguageModel.from_pretrained was called
+    mock_FastLanguageModel.from_pretrained.assert_called_once()
 
-        # Verify that train was called
-        mock_trainer.train.assert_called_once()
+    # Assert that mlflow.start_run was called
+    mock_mlflow.start_run.assert_called_once()
 
-        # Verify that MLflow functions were called
-        mock_start_run.assert_called_once()
-        mock_log_param.assert_any_call("warmup_steps", 5)
-        mock_log_param.assert_any_call("per_device_train_batch_size", 2)
-        mock_log_param.assert_any_call("max_steps", 10)
-        mock_log_param.assert_any_call("weight_decay", 0.01)
-        mock_log_metric.assert_any_call("minutesxtraining", 5.0)  # 300 seconds / 60
+    # Assert that mlflow.log_param was called with the correct parameters
+    expected_params = {
+        "warmup_steps": 5,
+        "per_device_train_batch_size": 2,
+        "max_steps": 10,
+        "weight_decay": 0.01,
+    }
+    for param, value in expected_params.items():
+        mock_mlflow.log_param.assert_any_call(param, value)
 
-        # Verify model logging
-        mock_log_model.assert_called_once()
+    # Assert that the dataset.map method was called with formatting_prompts_func
+    mock_dataset.map.assert_called_once_with(formatting_prompts_func, batched=True)
+
+    # Assert that the Trainer was instantiated with the correct arguments
+    mock_trainer.assert_called_once()
+    trainer_args = mock_trainer.call_args[1]
+    assert trainer_args["model"] == mock_model
+    assert trainer_args["tokenizer"] == mock_tokenizer
+    assert trainer_args["train_dataset"] == mock_dataset
+    assert trainer_args["dataset_text_field"] == "text"
+    assert trainer_args["packing"] == False
+
+    # Check TrainingArguments
+    assert isinstance(trainer_args["args"], TrainingArguments)
+    assert trainer_args["args"].per_device_train_batch_size == 2
+    assert trainer_args["args"].gradient_accumulation_steps == 4
+    assert trainer_args["args"].warmup_steps == 5
+    assert trainer_args["args"].max_steps == 10
+    assert trainer_args["args"].learning_rate == 2e-4
+    assert trainer_args["args"].fp16 == True
+    assert trainer_args["args"].bf16 == False
+    assert trainer_args["args"].logging_steps == 1
+    assert trainer_args["args"].optim == "adamw_8bit"
+    assert trainer_args["args"].weight_decay == 0.01
+    assert trainer_args["args"].lr_scheduler_type == "linear"
+    assert trainer_args["args"].seed == 3407
+    assert trainer_args["args"].output_dir == "outputs"
+
+    # Assert that the training was performed
+    mock_trainer.return_value.train.assert_called_once()
+
+    # Assert that MLflow metrics were logged correctly
+    mock_mlflow.log_metric.assert_called_with("minutesxtraining", 10.0)
+
+    # Assert that the model was saved
+    mock_model.save_pretrained_merged.assert_called_once_with(
+        "model",
+        mock_tokenizer,
+        save_method="merged_16bit",
+    )
+
+    # Assert that the model was logged with MLflow
+    mock_mlflow.pyfunc.log_model.assert_called_once()
+    log_model_args = mock_mlflow.pyfunc.log_model.call_args[1]
+    assert log_model_args["artifact_path"] == "phi3-instruct"
+    assert isinstance(log_model_args["python_model"], Phi3)
+    assert log_model_args["artifacts"] == {"snapshot": "./model"}
+    assert log_model_args["registered_model_name"] == "PhiModel"
 
 
 if __name__ == "__main__":
-    unittest.main()
+    pytest.main()
