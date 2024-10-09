@@ -1,7 +1,6 @@
 import unittest
 from unittest.mock import patch, MagicMock
 import mlflow
-import sys
 
 
 class TestTrainMyModel(unittest.TestCase):
@@ -11,9 +10,15 @@ class TestTrainMyModel(unittest.TestCase):
     @patch("trainmodel.mlflow.start_run")  # Patch mlflow.start_run
     @patch("trainmodel.mlflow.log_param")  # Patch mlflow.log_param
     @patch("trainmodel.mlflow.log_metric")  # Patch mlflow.log_metric
-    @patch("trainmodel.mlflow.pyfunc.log_model")  # Patch the model logging
+    @patch("trainmodel.mlflow.pyfunc.log_model")  # Patch model logging
+    @patch("trainmodel.FastLanguageModel")  # Patch the unsloth FastLanguageModel
+    @patch(
+        "trainmodel.is_bfloat16_supported"
+    )  # Patch the unsloth is_bfloat16_supported
     def test_train_my_model(
         self,
+        mock_is_bfloat16_supported,
+        mock_fast_language_model,
         mock_log_model,
         mock_log_metric,
         mock_log_param,
@@ -25,6 +30,14 @@ class TestTrainMyModel(unittest.TestCase):
         mock_dataset = MagicMock()
         mock_load_dataset.return_value = mock_dataset
 
+        # Mock the FastLanguageModel's behavior
+        mock_model = MagicMock()
+        mock_tokenizer = MagicMock()
+        mock_fast_language_model.from_pretrained.return_value = (
+            mock_model,
+            mock_tokenizer,
+        )
+
         # Mock the SFTTrainer behavior
         mock_trainer = MagicMock()
         mock_sft_trainer.return_value = mock_trainer
@@ -34,30 +47,25 @@ class TestTrainMyModel(unittest.TestCase):
             "train_runtime": 300
         }  # Mocked runtime for metrics
 
-        # Mock the entire unsloth module
-        mock_unsloth = MagicMock()
-        mock_FastLanguageModel = MagicMock()
-        # Create mock objects for model and tokenizer
-        mock_model = MagicMock()
-        mock_tokenizer = MagicMock()
-        # Configure the from_pretrained method to return the mock model and tokenizer
-        mock_FastLanguageModel.from_pretrained.return_value = (
-            mock_model,
-            mock_tokenizer,
-        )
+        # Mock is_bfloat16_supported to return False for testing purposes
+        mock_is_bfloat16_supported.return_value = False
 
-        mock_unsloth.FastLanguageModel = mock_FastLanguageModel
-        sys.modules["unsloth"] = mock_unsloth
-        sys.modules["unsloth.FastLanguageModel"] = mock_FastLanguageModel
-        sys.modules["unsloth.is_bfloat16_supported"] = MagicMock()
+        # Call the function to be tested
+        from trainmodel import train_my_model
 
-        with patch.dict("sys.modules", {"unsloth": mock_unsloth}):
-            from trainmodel import train_my_model, formatting_prompts_func, Phi3
+        train_my_model()
 
-            train_my_model()
         # Verify that load_dataset was called
         mock_load_dataset.assert_called_once_with(
             "somosnlp/recetasdelaabuela_it", split="train"
+        )
+
+        # Verify that FastLanguageModel was called correctly
+        mock_fast_language_model.from_pretrained.assert_called_once_with(
+            model_name="unsloth/Phi-3.5-mini-instruct",
+            max_seq_length=2048,
+            dtype=None,
+            load_in_4bit=True,
         )
 
         # Verify that SFTTrainer was initialized correctly
