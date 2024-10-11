@@ -37,10 +37,13 @@ Actualmente solo se espera desplegar el modelo en un servicio REST y que pueda s
 Actualmente solo se trabaja con un dataset previamente scrapeado y preprocesado. Una futura mejora es automatizar el webscraping y asi hacer crecer los datos y mantenerlos actualizados.
 
 ## Ejecutar localmente
+> [!NOTE]
+> El proyecto se desarrollo en un entorno Linux (Arch linux)
+
 ### Requerimientos
-docker
-docker compose
-git
+- [Docker](https://www.docker.com/)
+- Git
+- 
 ### Comandos
 Crear red externa docker:
 ```
