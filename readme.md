@@ -19,7 +19,7 @@ El modelo responde a demanda, cada vez que el usuario envia un mensaje. El model
 - Estos componentes interactúan entre sí y son utilizados principalmente por los Ingenieros de ML
 
 ### CI/CD
-- Incluye pipeline entrenamiento del modelo y despliegue de App/Infra
+- Incluye pipeline entrenamiento del modelo y despliegue
 - El pipeline se ejecutaria de manera diaria en horario batch ya que se esperaria que se actualicen los datasets
 
 ### Roles
