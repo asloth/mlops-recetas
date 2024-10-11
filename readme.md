@@ -10,12 +10,12 @@ El dataset fue elaborado a partir del webscraping de sitios de recetas y su post
 ## Inferencia
 El modelo responde a demanda, cada vez que el usuario envia un mensaje. El modelo recibe todo el contexto de la conversación y responde.
 
-## Full solution architecture
+## Arquitectura de la solucion
 
 ![Architecture](docs/Flowchart.jpg)
 
-### Training infrastructure
-- Consta de tres elementos principales: minio, MLflow y PostgreSQL – todos accesibles externamente a través del servidor MLOps
+### Infraestructura de entrenamiento
+- Consta de tres elementos principales: minio, MLflow y PostgreSQL
 - Estos componentes interactúan entre sí y son utilizados principalmente por los Ingenieros de ML
 
 ### CI/CD
