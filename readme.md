@@ -14,7 +14,7 @@ El modelo responde a demanda, cada vez que el usuario envia un mensaje. El model
 
 ## Full solution architecture
 
-![[Diagrama de flujo.jpg]]
+![Architecture](docs/Flowchart.jpg)
 
 ### Training infrastructure
 - Consta de tres elementos principales: minio, MLflow y PostgreSQL – todos accesibles externamente a través del servidor MLOps
@@ -31,13 +31,11 @@ El modelo responde a demanda, cada vez que el usuario envia un mensaje. El model
 ## Limitaciones
 ### Este proyecto está actualmente destinado a ejecutarse localmente
 No se han hecho previsiones para ejecutar este proyecto utilizando ninguna infraestructura en la nube.
-
 ### El modelo no esta optimizado
 El modelo ha pasado por el entrenamiento solo para poder generar registros en mlflow y ha sido entrenado en un entorno local sin gpu durante unos pocos epochs
-### No hay frontend
+### Despliegue en servicio REST
 Actualmente solo se espera desplegar el modelo en un servicio REST y que pueda ser consumido.
-
-### No hay pipeline que actualice el dataset
-Actualmente solo se trabaja con un dataset previamente scrapeado y preprocesado. Una futura mejora es automatizar el webscraping y asi hacer crecer los datos.
+### Actualizacion del dataset
+Actualmente solo se trabaja con un dataset previamente scrapeado y preprocesado. Una futura mejora es automatizar el webscraping y asi hacer crecer los datos y mantenerlos actualizados.
 
 ## Ejecutar localmente
