@@ -5,7 +5,7 @@ El objetivo de este proyecto es crear un flujo de desarrollo y productivizacion 
 Se usará el modelo open source Phi3 ya que al ser pequeño podemos entrenarlo en un entorno local.
 
 ## Datos
-El dataset fue elaborado a partir del webscraping de sitios de recetas y su posterior transformación a un dataset de instrucciones, este de desarrollo durante el marco de la hakathon somosNLP 2024 y se puede encontrar [repo](https://huggingface.co/datasets/somosnlp/recetasdelaabuela_genstruct_it) . El codigo para crear el dataset lo encuentran en este [colab](https://colab.research.google.com/drive/1-7OY5ORmOw0Uy_uazXDDqjWWkwCKvWbL?usp=sharing)
+El dataset fue elaborado a partir del webscraping de sitios de recetas y su posterior transformación a un dataset de instrucciones, este se desarrollo durante el marco de la hakathon somosNLP 2024 y se puede encontrar [repo](https://huggingface.co/datasets/somosnlp/recetasdelaabuela_genstruct_it) . El codigo para crear el dataset lo encuentran en este [colab](https://colab.research.google.com/drive/1-7OY5ORmOw0Uy_uazXDDqjWWkwCKvWbL?usp=sharing).
 
 ## Inferencia
 El modelo responde a demanda, cada vez que el usuario envia un mensaje. El modelo recibe todo el contexto de la conversación y responde.
