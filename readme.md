@@ -10,17 +10,17 @@ El dataset fue elaborado a partir del webscraping de sitios de recetas y su post
 ## Inferencia
 El modelo responde a demanda, cada vez que el usuario envia un mensaje. El modelo recibe todo el contexto de la conversación y responde.
 
-## Arquitectura de la solucion
+## Arquitectura de la solución
 
 ![Architecture](docs/Flowchart.jpg)
 
 ### Infraestructura de entrenamiento
-- Consta de tres elementos principales: minio, MLflow y PostgreSQL
-- Estos componentes interactúan entre sí y son utilizados principalmente por los Ingenieros de ML
+- Consta de tres elementos principales: minio, MLflow y PostgreSQL.
+- Estos componentes interactúan entre sí y son utilizados principalmente por los Ingenieros de ML.
 
 ### CI/CD
-- Incluye pipeline entrenamiento del modelo y despliegue
-- El pipeline se ejecutaria de manera diaria en horario batch ya que se esperaria que se actualicen los datasets
+- Incluye la pipeline de entrenamiento y despliegue del modelo.
+- El pipeline se ejecutaria de manera diaria en un horario definido ya que se esperaria que se actualicen los datasets.
 
 ### Roles
 - Ingeniero de ML: Modifica el código de entrenamiento, agrega mejoras al modelo y contribuye a otros cambios de código
@@ -29,11 +29,35 @@ El modelo responde a demanda, cada vez que el usuario envia un mensaje. El model
 ## Limitaciones
 ### Este proyecto está actualmente destinado a ejecutarse localmente
 No se han hecho previsiones para ejecutar este proyecto utilizando ninguna infraestructura en la nube.
-### El modelo no esta optimizado
-El modelo ha pasado por el entrenamiento solo para poder generar registros en mlflow y ha sido entrenado en un entorno local sin gpu durante unos pocos epochs
+### Optimización del modelo
+El modelo no fue optimizado ya que no era el objetivo principal del proyecto, aunque existe potencial para mejorarlo en futuras iteraciones.
 ### Despliegue en servicio REST
 Actualmente solo se espera desplegar el modelo en un servicio REST y que pueda ser consumido.
-### Actualizacion del dataset
+### Actualización del dataset
 Actualmente solo se trabaja con un dataset previamente scrapeado y preprocesado. Una futura mejora es automatizar el webscraping y asi hacer crecer los datos y mantenerlos actualizados.
 
 ## Ejecutar localmente
+### Requerimientos
+docker
+docker compose
+git
+### Comandos
+Crear red externa docker:
+```
+docker network create shared_network
+```
+
+Levantar MLflow server:
+```bash
+docker compose --env-file mlflow-server/mlflow.env -f training-infra.docker-compose.yml up -d
+```
+
+Levantar container de entrenamiento y evaluación best-model:
+```bash
+docker compose -f model/model-docker-compose.yml up -d
+```
+
+Levantar airflow server:
+```bash
+docker compose -f airflow/docker-compose.yaml up -d
+```
