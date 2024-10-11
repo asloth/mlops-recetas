@@ -2,8 +2,6 @@
 El objetivo de este proyecto es crear un flujo de desarrollo y productivizacion de un modelo conversacional que pueda asistir en la creacion de recetas latinoamericanas a través del fine tuning de un modelo LLM open source con datos scrapeados de distintas web de recetas.
 
 ## Modelado
-
-### Modelo
 Se usará el modelo open source Phi3 ya que al ser pequeño podemos entrenarlo en un entorno local.
 
 ## Datos
