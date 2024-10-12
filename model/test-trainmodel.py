@@ -60,7 +60,7 @@ def mock_dataset():
 #    }
 
 
-@patch("your_module_name.formatting_prompts_func")
+@patch("trainmodel.formatting_prompts_func")
 def test_train_my_model(mock_trainer, mock_dataset):
     # Mock the load_dataset function
     with patch.dict(
