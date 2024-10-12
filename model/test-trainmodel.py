@@ -29,7 +29,6 @@ with patch.dict(
 ):
     from trainmodel import (
         train_my_model,
-        formatting_prompts_func,
         Phi3,
     )
 
@@ -76,7 +75,7 @@ def test_train_my_model(mock_trainer, mock_dataset):
             return_value=mock_formatting_func_return,
         ):
             with patch("datasets.load_dataset", return_value=mock_dataset):
-                with patch("trl.SFTTrainer", return_value=mock_trainer):
+                with patch("trainmodel.SFTTrainer"):
                     # Mock the is_bfloat16_supported function
                     # with patch("unsloth.is_bfloat16_supported", return_value=False):
                     # Call the training function
