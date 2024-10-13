@@ -31,10 +31,18 @@ def test_train_my_model_mlflow_logging(mock_imports):
     mlflow.log_param = MagicMock()
     mlflow.log_metric = MagicMock()
 
+    mock_FastLanguageModel = MagicMock()
+    mock_model = MagicMock()
+    mock_tokenizer = MagicMock()
+
+    # Ensure it returns two values as expected
+    mock_FastLanguageModel.from_pretrained.return_value = (mock_model, mock_tokenizer)
     # Mock FastLanguageModel, is_bfloat16_supported, TrainingArguments, and SFTTrainer
-    with patch("trainmodel.FastLanguageModel", MagicMock()), patch(
-        "trainmodel.is_bfloat16_supported", return_value=False
-    ), patch("trainmodel.TrainingArguments", MagicMock()), patch(
+    with patch(
+        "trainmodel.FastLanguageModel", return_value=mock_FastLanguageModel
+    ), patch("trainmodel.is_bfloat16_supported", return_value=False), patch(
+        "trainmodel.TrainingArguments", MagicMock()
+    ), patch(
         "trainmodel.SFTTrainer", MagicMock()
     ):
 
