@@ -24,10 +24,8 @@ def mock_mlflow():
 
 
 mock_FastLanguageModel = MagicMock()
-# Create mock objects for model and tokenizer
 mock_model = MagicMock()
 mock_tokenizer = MagicMock()
-# Configure the from_pretrained method to return the mock model and tokenizer
 mock_FastLanguageModel.from_pretrained.return_value = (mock_model, mock_tokenizer)
 
 
@@ -35,9 +33,13 @@ mock_FastLanguageModel.from_pretrained.return_value = (mock_model, mock_tokenize
 @patch("trainmodel.trainer.train")
 @patch("trainmodel.TrainingArguments")
 @patch("trainmodel.FastLanguageModel", return_value=mock_FastLanguageModel)
+@patch("torch.cuda.is_available", return_value=False)  # Mock CUDA availability check
+@patch("torch.cuda.get_device_capability", return_value=(7, 5))
 @patch("trainmodel.model")
 def test_train_my_model(
     mock_model,
+    mock_cuda_get_device_capability,
+    mock_cuda_is_available,
     mock_fast_language_model,
     mock_training_args,
     mock_trainer_train,
