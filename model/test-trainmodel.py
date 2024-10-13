@@ -1,12 +1,26 @@
 from datasets import load_dataset
 import pytest
 from unittest.mock import MagicMock, patch
+import sys
 
-with patch("unsloth.FastLanguageModel", MagicMock()), patch(
-    "torch.cuda.is_available", return_value=False
-), patch("torch.cuda.get_device_capability", return_value=(7, 5)):
+# Mock the entire unsloth module
+mock_unsloth = MagicMock()
+mock_FastLanguageModel = MagicMock()
 
-    # Import `trainmodel` after the mocks are applied
+# Create mock objects for model and tokenizer
+mock_model = MagicMock()
+mock_tokenizer = MagicMock()
+
+# Configure the from_pretrained method to return the mock model and tokenizer
+mock_FastLanguageModel.from_pretrained.return_value = (mock_model, mock_tokenizer)
+
+mock_unsloth.FastLanguageModel = mock_FastLanguageModel
+sys.modules["unsloth"] = mock_unsloth
+sys.modules["unsloth.FastLanguageModel"] = mock_FastLanguageModel
+
+# Now patch the import in your script
+with patch.dict("sys.modules", {"unsloth": mock_unsloth}):
+    # Import your script here
     from trainmodel import train_my_model
 
 
