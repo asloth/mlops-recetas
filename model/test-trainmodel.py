@@ -7,30 +7,6 @@ import mlflow
 
 mock_mlflow = MagicMock()
 # Mock FastLanguageModel
-mock_model = MagicMock()
-mock_tokenizer = MagicMock()
-mock_FastLanguageModel = MagicMock()
-mock_FastLanguageModel.from_pretrained.return_value = (mock_model, mock_tokenizer)
-
-
-mock_unsloth = MagicMock()
-mock_unsloth.FastLanguageModel = mock_FastLanguageModel
-# Patch necessary modules and imports
-# @pytest.fixture(autouse=True)
-# def mock_imports():
-with patch.dict(
-    "sys.modules",
-    {
-        "mlflow": MagicMock(),
-        "unsloth": mock_unsloth,
-        "unsloth.FastLanguageModel": mock_FastLanguageModel,
-        "unsloth.is_bfloat16_supported": False,
-    },
-):
-    from trainmodel import (
-        train_my_model,
-        Phi3,
-    )
 
 
 @pytest.fixture
@@ -61,7 +37,14 @@ def mock_dataset():
 
 
 @patch("trainmodel.formatting_prompts_func")
-def test_train_my_model(mock_trainer, mock_dataset):
+def test_train_my_model(mock_formatting, mock_trainer, mock_dataset):
+    mock_model = MagicMock()
+    mock_tokenizer = MagicMock()
+    mock_FastLanguageModel = MagicMock()
+    mock_FastLanguageModel.from_pretrained.return_value = (mock_model, mock_tokenizer)
+
+    mock_unsloth = MagicMock()
+    mock_unsloth.FastLanguageModel = mock_FastLanguageModel
     # Mock the load_dataset function
     with patch.dict(
         "sys.modules",
