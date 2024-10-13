@@ -23,15 +23,33 @@ def mock_mlflow():
         yield mock_start_run, mock_log_param, mock_log_metric, mock_log_model
 
 
+mock_FastLanguageModel = MagicMock()
+# Create mock objects for model and tokenizer
+mock_model = MagicMock()
+mock_tokenizer = MagicMock()
+# Configure the from_pretrained method to return the mock model and tokenizer
+mock_FastLanguageModel.from_pretrained.return_value = (mock_model, mock_tokenizer)
+
+
 @patch("trainmodel.SFTTrainer")
 @patch("trainmodel.trainer.train")
 @patch("trainmodel.TrainingArguments")
+@patch("trainmodel.FastLanguageModel", return_value=mock_FastLanguageModel)
+@patch("trainmodel.model")
 def test_train_my_model(
-    mock_training_args, mock_trainer_train, mock_sfttrainer, mock_trainer, mock_mlflow
+    mock_model,
+    mock_fast_language_model,
+    mock_training_args,
+    mock_trainer_train,
+    mock_sfttrainer,
+    mock_trainer,
+    mock_mlflow,
 ):
     mock_start_run, mock_log_param, mock_log_metric, mock_log_model = mock_mlflow
+
     train_my_model()
-    mock_training_args.assert_called
+    mock_model.assert_called_once()
+    mock_training_args.assert_called_once()
     mock_trainer.assert_called_once()
     mock_log_model.assert_called_once()
 
