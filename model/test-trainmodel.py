@@ -49,7 +49,7 @@ mock_tokenizer = MagicMock()
 mock_FastLanguageModel.from_pretrained.return_value = (mock_model, mock_tokenizer)
 
 
-@patch("trainmodel.SFTTrainer")
+# @patch("trainmodel.SFTTrainer")
 # @patch("trainmodel.trainer.train")
 @patch("trainmodel.TrainingArguments")
 @patch("trainmodel.FastLanguageModel", return_value=mock_FastLanguageModel)
@@ -59,7 +59,7 @@ def test_train_my_model(
     mock_fast_language_model,
     mock_training_args,
     # mock_trainer_train,
-    mock_sfttrainer,
+    # mock_sfttrainer,
     mock_trainer,
     mock_mlflow,
 ):
