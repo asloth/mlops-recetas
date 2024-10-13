@@ -2,6 +2,13 @@ from datasets import load_dataset
 import pytest
 from unittest.mock import MagicMock, patch
 
+with patch("unsloth.FastLanguageModel", MagicMock()), patch(
+    "torch.cuda.is_available", return_value=False
+), patch("torch.cuda.get_device_capability", return_value=(7, 5)):
+
+    # Import `trainmodel` after the mocks are applied
+    from trainmodel import train_my_model
+
 
 @pytest.fixture
 def mock_trainer():
@@ -32,13 +39,9 @@ mock_FastLanguageModel.from_pretrained.return_value = (mock_model, mock_tokenize
 @patch("trainmodel.trainer.train")
 @patch("trainmodel.TrainingArguments")
 @patch("trainmodel.FastLanguageModel", return_value=mock_FastLanguageModel)
-@patch("torch.cuda.is_available", return_value=False)  # Mock CUDA availability check
-@patch("torch.cuda.get_device_capability", return_value=(7, 5))
 @patch("trainmodel.model")
 def test_train_my_model(
     mock_model,
-    mock_cuda_get_device_capability,
-    mock_cuda_is_available,
     mock_fast_language_model,
     mock_training_args,
     mock_trainer_train,
@@ -47,8 +50,6 @@ def test_train_my_model(
     mock_mlflow,
 ):
     mock_start_run, mock_log_param, mock_log_metric, mock_log_model = mock_mlflow
-
-    from trainmodel import train_my_model
 
     train_my_model()
     mock_model.assert_called_once()
