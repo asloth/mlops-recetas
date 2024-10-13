@@ -1,4 +1,3 @@
-from trainmodel import train_my_model, formatting_prompts_func
 from datasets import load_dataset
 import pytest
 from unittest.mock import MagicMock, patch
@@ -48,6 +47,8 @@ def test_train_my_model(
     mock_mlflow,
 ):
     mock_start_run, mock_log_param, mock_log_metric, mock_log_model = mock_mlflow
+
+    from trainmodel import train_my_model
 
     train_my_model()
     mock_model.assert_called_once()
