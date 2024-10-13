@@ -26,7 +26,7 @@ with patch.dict("sys.modules", {"unsloth": mock_unsloth}):
 
 @pytest.fixture
 def mock_trainer():
-    with patch("trl.SFTTrainer") as MockTrainer:
+    with patch("trainmodel.SFTTrainer") as MockTrainer:
         mock_train = MagicMock()
         mock_train.return_value.metrics = {"train_runtime": 600}  # 10 minutes
         MockTrainer.return_value.train = mock_train
