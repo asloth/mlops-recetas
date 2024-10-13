@@ -188,10 +188,11 @@ signature = ModelSignature(
 input_example = pd.DataFrame({"prompt": ["What is Neo4J?"]})
 
 
-def train_my_model():
-    dataset = load_dataset("somosnlp/recetasdelaabuela_it", split="train")
-    dataset = dataset.map(formatting_prompts_func, cache_file_name=None)
+dataset = load_dataset("somosnlp/recetasdelaabuela_it", split="train")
+dataset = dataset.map(formatting_prompts_func, cache_file_name=None)
 
+
+def train_my_model():
     warmup_steps = 5
     per_device_train_batch_size = 2
     max_steps = 10

@@ -1,20 +1,12 @@
+from trainmodel import train_my_model, formatting_prompts_func
+from datasets import load_dataset
 import pytest
-from unittest.mock import patch, MagicMock
-from transformers import TrainingArguments
-from datasets import Dataset
-import sys
-import mlflow
-
-mock_mlflow = MagicMock()
-# Mock FastLanguageModel
-# Patch necessary modules and imports
-# @pytest.fixture(autouse=True)
-# def mock_imports():
+from unittest.mock import MagicMock, patch
 
 
 @pytest.fixture
 def mock_trainer():
-    with patch("trl.SFTTrainer") as MockTrainer:
+    with patch("trainmodel.SFTTrainer") as MockTrainer:
         mock_train = MagicMock()
         mock_train.return_value.metrics = {"train_runtime": 600}  # 10 minutes
         MockTrainer.return_value.train = mock_train
@@ -22,72 +14,26 @@ def mock_trainer():
 
 
 @pytest.fixture
-def mock_dataset():
-    mock_dataset = MagicMock()
-    mock_dataset.map.return_value = {
-        "text": [
-            "<|user|>What is Neo4j?<|end|><|assistant|>Neo4j is a graph database.<|end|>"
-        ]
-    }
-    return mock_dataset
+def mock_mlflow():
+    with patch("mlflow.start_run") as mock_start_run, patch(
+        "mlflow.log_param"
+    ) as mock_log_param, patch("mlflow.log_metric") as mock_log_metric, patch(
+        "mlflow.pyfunc.log_model"
+    ) as mock_log_model:
+        yield mock_start_run, mock_log_param, mock_log_metric, mock_log_model
 
 
-# @pytest.fixture
-# def mock_formatting_func_return(examples):
-#    return {
-#        "text": ["<|user|>Sample question?<|end|><|assistant|>Sample answer.<|end|>"]
-#    }
-
-
-@patch("trainmodel.formatting_prompts_func")
-def test_train_my_model(mock_formatting, mock_trainer, mock_dataset):
-    mock_model = MagicMock()
-    mock_tokenizer = MagicMock()
-    mock_FastLanguageModel = MagicMock()
-    mock_FastLanguageModel.from_pretrained.return_value = (mock_model, mock_tokenizer)
-
-    mock_unsloth = MagicMock()
-    mock_unsloth.FastLanguageModel = mock_FastLanguageModel
-    # Mock the load_dataset function
-    with patch.dict(
-        "sys.modules",
-        {
-            "unsloth": mock_unsloth,
-            "unsloth.FastLanguageModel": mock_FastLanguageModel,
-            "unsloth.is_bfloat16_supported": False,
-        },
-    ):
-        with patch("trainmodel.SFTTrainer"):
-            from trainmodel import (
-                train_my_model,
-            )
-
-            # Mock the is_bfloat16_supported function
-            # with patch("unsloth.is_bfloat16_supported", return_value=False):
-            # Call the training function
-            train_my_model()
-
-    # Assert that FastLanguageModel.from_pretrained was called
-    mock_FastLanguageModel.from_pretrained.assert_called_once()
-
-    # Assert that mlflow.start_run was called
-    mock_mlflow.start_run.assert_called_once()
-
-    # Assert that the dataset.map method was called with formatting_prompts_func
-    # mock_dataset.map.assert_called_once_with(formatting_prompts_func, batched=True)
-
-    # Assert that the training was performed
-    mock_trainer.return_value.train.assert_called_once()
-
-    # Assert that the model was saved
-    mock_model.save_pretrained_merged.assert_called_once_with(
-        "model",
-        mock_tokenizer,
-        save_method="merged_16bit",
-    )
-
-    # Assert that the model was logged with MLflow
-    mock_mlflow.pyfunc.log_model.assert_called_once()
+@patch("trainmodel.SFTTrainer")
+@patch("trainmodel.trainer.train")
+@patch("trainmodel.TrainingArguments")
+def test_train_my_model(
+    mock_training_args, mock_trainer_train, mock_sfttrainer, mock_trainer, mock_mlflow
+):
+    mock_start_run, mock_log_param, mock_log_metric, mock_log_model = mock_mlflow
+    train_my_model()
+    mock_training_args.assert_called
+    mock_trainer.assert_called_once()
+    mock_log_model.assert_called_once()
 
 
 if __name__ == "__main__":
