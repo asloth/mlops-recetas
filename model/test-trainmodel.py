@@ -34,9 +34,7 @@ def mock_imports(monkeypatch):
             "set_experiment": None,
             "log_param": None,
             "log_metric": None,
-            "pyfunc": {
-                "log_model": None,
-            },
+            "pyfunc": {"log_model": None, "PythonModel": MagicMock()},
             "models": {
                 "signature": {
                     "ModelSignature": None,
