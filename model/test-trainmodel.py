@@ -1,5 +1,5 @@
-import pytest
 import sys
+import pytest
 from unittest.mock import MagicMock
 from types import ModuleType
 
@@ -65,15 +65,22 @@ def test_train_my_model_mlflow_logging(mock_imports):
 
     # Mock FastLanguageModel, is_bfloat16_supported, TrainingArguments, and SFTTrainer
     with pytest.MonkeyPatch().context() as m:
-        m.setattr("trainmodel.FastLanguageModel", create_autospec_mock())
+        # Mock FastLanguageModel.from_pretrained to return a tuple (model, tokenizer)
+        mock_model = MagicMock()
+        mock_tokenizer = MagicMock()
+        mock_from_pretrained = MagicMock(return_value=(mock_model, mock_tokenizer))
+        m.setattr("trainmodel.FastLanguageModel.from_pretrained", mock_from_pretrained)
+
         m.setattr("trainmodel.is_bfloat16_supported", lambda: False)
         m.setattr("trainmodel.TrainingArguments", create_autospec_mock())
-        m.setattr("trainmodel.SFTTrainer", create_autospec_mock())
 
-        # Mock the trainer.train() method to return a MagicMock with metrics
+        # Mock SFTTrainer
+        mock_trainer = MagicMock()
         mock_train_result = MagicMock()
         mock_train_result.metrics = {"train_runtime": 600}  # 10 minutes
-        m.setattr("trainmodel.SFTTrainer.train", lambda self: mock_train_result)
+        mock_trainer.train.return_value = mock_train_result
+        mock_sft_trainer = MagicMock(return_value=mock_trainer)
+        m.setattr("trainmodel.SFTTrainer", mock_sft_trainer)
 
         # Call the function
         train_my_model()
@@ -95,3 +102,12 @@ def test_train_my_model_mlflow_logging(mock_imports):
 
     # Check if mlflow.pyfunc.log_model was called
     mlflow.pyfunc.log_model.assert_called_once()
+
+    # Verify that FastLanguageModel.from_pretrained was called
+    mock_from_pretrained.assert_called_once()
+
+    # Verify that SFTTrainer was initialized with the correct model and tokenizer
+    mock_sft_trainer.assert_called_once()
+    _, kwargs = mock_sft_trainer.call_args
+    assert kwargs["model"] == mock_model
+    assert kwargs["tokenizer"] == mock_tokenizer
