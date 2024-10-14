@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from unittest import mock
 import transformers
 from datasets import Dataset
@@ -37,7 +37,7 @@ mock_unsloth = mock.MagicMock()
 mock_FastLanguageModel = mock.MagicMock()
 
 # Configure the from_pretrained method to return the mock model and tokenizer
-mock_FastLanguageModel.from_pretrained.return_value = (mock_model, mock_tokenizer)
+mock_FastLanguageModel.from_pretrained.return_value = (MagicMock(), MagicMock())
 
 mock_unsloth.FastLanguageModel = mock_FastLanguageModel
 sys.modules["unsloth"] = mock_unsloth
