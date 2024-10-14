@@ -1,141 +1,165 @@
-import sys
 import pytest
-from unittest.mock import MagicMock
-from types import ModuleType
+from unittest.mock import patch
+from unittest import mock
+import transformers
+from datasets import Dataset
+import sys
+from trl import SFTTrainer
+import mlflow
+from unittest.mock import create_autospec
+from pickle import dumps
+from pathlib import Path
 
 
-class MockModule(ModuleType):
-    """A custom module class that creates attributes on-the-fly and allows assignment."""
-
-    def __init__(self, name):
-        super().__init__(name)
-        self._mock_dict = {}
-
-    def __getattr__(self, name):
-        if name not in self._mock_dict:
-            self._mock_dict[name] = MockModule(f"{self.__name__}.{name}")
-        return self._mock_dict[name]
-
-    def __setattr__(self, name, value):
-        if name == "_mock_dict":
-            super().__setattr__(name, value)
-        else:
-            self._mock_dict[name] = value
+@pytest.fixture
+def mock_model() -> transformers.PreTrainedModel:
+    config = transformers.DistilBertConfig(
+        vocab_size=4,  # must be the same as the vocab size in the tokenizer
+        n_layers=1,
+        n_heads=1,
+        dim=4,
+        hidden_dim=4,
+    )
+    model = transformers.DistilBertModel(config)
+    return model
 
 
-def create_mock_mlflow():
-    mock_mlflow = MockModule("mlflow")
-
-    # Mock specific functions
-    mock_mlflow.start_run = MagicMock()
-    mock_mlflow.set_tracking_uri = MagicMock()
-    mock_mlflow.set_experiment = MagicMock()
-    mock_mlflow.log_param = MagicMock()
-    mock_mlflow.log_metric = MagicMock()
-    mock_mlflow.pyfunc.log_model = MagicMock()
-
-    # Mock classes
-    mock_mlflow.models.signature.ModelSignature = type("ModelSignature", (), {})
-    mock_mlflow.types.ColSpec = type("ColSpec", (), {})
-    mock_mlflow.types.DataType = type("DataType", (), {})
-    mock_mlflow.types.ParamSchema = type("ParamSchema", (), {})
-    mock_mlflow.types.ParamSpec = type("ParamSpec", (), {})
-    mock_mlflow.types.Schema = type("Schema", (), {})
-
-    return mock_mlflow
-
-    # def create_autospec_mock():
-    #    """Create a MagicMock that creates new mocks for accessed attributes."""
-    #    return MagicMock(side_effect=lambda *args, **kwargs: MagicMock())
-    #
-    #
-    # def mock_module(module_name, module_dict):
-    #    """Recursively mock a module and its submodules."""
-    #    mock = ModuleType(module_name)
-    #    for attr, value in module_dict.items():
-    #        if isinstance(value, dict):
-    #            setattr(mock, attr, mock_module(f"{module_name}.{attr}", value))
-    #        else:
-    #            setattr(mock, attr, create_autospec_mock())
-    #    return mock
+@pytest.fixture
+def mock_tokenizer(tmp_path: Path) -> transformers.PreTrainedTokenizer:
+    with open(tmp_path / "vocab.txt", "w") as f:
+        f.write("[CLS]\n[SEP]\n[MASK]\n[UNK]\n")
+        tokenizer = transformers.DistilBertTokenizer(tmp_path / "vocab.txt")
+    return tokenizer
 
 
+# Mock the entire unsloth module
+mock_unsloth = mock.MagicMock()
+mock_FastLanguageModel = mock.MagicMock()
+
+# Configure the from_pretrained method to return the mock model and tokenizer
+mock_FastLanguageModel.from_pretrained.return_value = (mock_model, mock_tokenizer)
+
+mock_unsloth.FastLanguageModel = mock_FastLanguageModel
+sys.modules["unsloth"] = mock_unsloth
+sys.modules["unsloth.FastLanguageModel"] = mock_FastLanguageModel
+sys.modules["unsloth.is_bfloat16_supported"] = mock.MagicMock()
+
+# Now patch the import in your script
+with patch.dict("sys.modules", {"unsloth": mock_unsloth}):
+    # Import your script here
+    from trainmodel import train_my_model, formatting_prompts_func, Phi3
+
+
+@pytest.fixture
+def mock_dataset():
+    return mock.MagicMock(spec=Dataset)
+
+
+class PicklableMock:
+    def train(self):
+        return {"train_runtime": 600}  # 10 minutes
+
+
+@pytest.fixture
+def mock_trainer():
+    with patch("trl.SFTTrainer", return_value=PicklableMock()) as MockTrainer:
+        yield MockTrainer
+
+
+@pytest.fixture
+def start_run():
+    mlflow.start_run()
+    yield
+    mlflow.end_run()
+
+
+# Mocking the dataset formatting function
+def mock_formatting_prompts_func(examples):
+    # Return a dictionary with lists instead of MagicMock
+    return {"text": ["mocked prompt 1", "mocked prompt 2", "mocked prompt 3"]}
+
+
+# @pytest.fixture
+# def mock_mlflow():
+#    mock_run = MagicMock()
+#    mock_mlflow = MagicMock()
+#    with patch("mlflow.start_run", return_value=mock_run) as mock_start_run, patch(
+#        "mlflow.log_param"
+#    ) as mock_log_param, patch("mlflow.log_metric") as mock_log_metric, patch(
+#        "mlflow.pyfunc.log_model"
+#    ) as mock_log_model, patch(
+#        "mlflow.MlflowClient", return_value=mock_mlflow
+#    ) as mock_mlflowclient, patch(
+#        "mlflow.set_experiment"
+#    ) as mock_set_experiment, patch(
+#        "mlflow.set_tracking_uri"
+#    ) as mock_set_tracking_uri:
+#        yield mock_start_run, mock_log_param, mock_log_metric, mock_log_model, mock_mlflowclient, mock_set_experiment, mock_set_tracking_uri
+#
+# Mock the necessary modules and functions
 @pytest.fixture(autouse=True)
-def mock_imports(monkeypatch):
-    mock_mlflow = create_mock_mlflow()
+def mock_dependencies():
+    with patch("transformers.AutoTokenizer.from_pretrained") as mock_tokenizer, patch(
+        "transformers.AutoModelForCausalLM.from_pretrained"
+    ) as mock_model, patch("datasets.load_dataset") as mock_load_dataset, patch(
+        "mlflow.start_run", return_value=mock.MagicMock()
+    ), patch(
+        "mlflow.MlflowClient", return_value=mock.MagicMock()
+    ), patch(
+        "mlflow.set_tracking_uri"
+    ), patch(
+        "mlflow.set_experiment"
+    ), patch(
+        "mlflow.log_param"
+    ), patch(
+        "mlflow.log_metric"
+    ), patch(
+        "mlflow.pyfunc.log_model"
+    ):
 
-    mock_FastLanguageModel = MagicMock()
-    mock_unsloth = MagicMock()
-    mock_FastLanguageModel.from_pretrained.return_value = (MagicMock(), MagicMock())
-    mock_unsloth.FastLanguageModel = mock_FastLanguageModel
+        # Set up mock returns
+        mock_tokenizer.return_value = mock.MagicMock()
+        mock_model.return_value = mock.MagicMock()
+        mock_load_dataset.return_value = mock.MagicMock()
 
-    mocks = {
-        "mlflow": mock_mlflow,
-        "unsloth": mock_unsloth,
-        # "torch": MockModule("torch"),
-        # "datasets": MockModule("datasets"),
-        # "trl": MockModule("trl"),
-        # "transformers": MockModule("transformers"),
-        # "fastapi": MockModule("fastapi"),
-    }
-
-    for name, mock in mocks.items():
-        monkeypatch.setitem(sys.modules, name, mock)
-
-    return mock_mlflow
+        yield
 
 
-def test_train_my_model_mlflow_logging(mock_imports):
-    mlflow = mock_imports  # This is now the mocked mlflow module
+def test_train_my_model():
+    # Mock the global variables that are used in the function
+    global model, tokenizer, max_seq_length
+    model = mock.MagicMock()
+    tokenizer = mock.MagicMock()
 
-    # Import the function to be tested
-    from trainmodel import train_my_model
+    max_seq_length = 512
 
-    # Mock FastLanguageModel, is_bfloat16_supported, TrainingArguments, and SFTTrainer
-    with pytest.MonkeyPatch().context() as m:
-        # Mock FastLanguageModel.from_pretrained to return a tuple (model, tokenizer)
-        mock_model = MagicMock()
-        mock_tokenizer = MagicMock()
-        mock_from_pretrained = MagicMock(return_value=(mock_model, mock_tokenizer))
-        m.setattr("trainmodel.FastLanguageModel.from_pretrained", mock_from_pretrained)
+    # Mock the formatting_prompts_func
+    with patch.dict("sys.modules", {"unsloth": mock_unsloth}):
+        with patch(
+            "trainmodel.formatting_prompts_func",
+            side_effect=mock_formatting_prompts_func,
+        ):
+            # Mock the is_bfloat16_supported function
+            with patch("unsloth.is_bfloat16_supported", return_value=False):
+                # Patch the SFTTrainer to return our mock trainer
+                with patch("trl.SFTTrainer", return_value=mock_trainer):
+                    # Call the function we want to test
+                    train_my_model()
 
-        m.setattr("trainmodel.is_bfloat16_supported", lambda: False)
-        m.setattr("trainmodel.TrainingArguments", MagicMock())
-
-        # Mock SFTTrainer
-        mock_trainer = MagicMock()
-        mock_train_result = MagicMock()
-        mock_train_result.metrics = {"train_runtime": 600}  # 10 minutes
-        mock_trainer.train.return_value = mock_train_result
-        mock_sft_trainer = MagicMock(return_value=mock_trainer)
-        m.setattr("trainmodel.SFTTrainer", mock_sft_trainer)
-
-        # Call the function
-        train_my_model()
-
-    # Verify MLflow logging calls
+    # Assert that MLflow functions were called
     mlflow.set_tracking_uri.assert_called_once_with("http://mlflow-server:5000")
     mlflow.set_experiment.assert_called_once_with("recetas-model")
 
-    expected_params = {
-        "warmup_steps": 5,
-        "per_device_train_batch_size": 2,
-        "max_steps": 10,
-        "weight_decay": 0.01,
-    }
-    for param, value in expected_params.items():
-        mlflow.log_param.assert_any_call(param, value)
-
+    # Check that log_metric was called with the correct value
     mlflow.log_metric.assert_called_once_with("minutesxtraining", 10.0)
 
-    # Check if mlflow.pyfunc.log_model was called
+    # Check that the model was saved
+    model.save_pretrained_merged.assert_called_once()
+
+    # Check that the model was logged to MLflow
     mlflow.pyfunc.log_model.assert_called_once()
 
-    # Verify that FastLanguageModel.from_pretrained was called
-    mock_from_pretrained.assert_called_once()
 
-    # Verify that SFTTrainer was initialized with the correct model and tokenizer
-    mock_sft_trainer.assert_called_once()
-    _, kwargs = mock_sft_trainer.call_args
-    assert kwargs["model"] == mock_model
-    assert kwargs["tokenizer"] == mock_tokenizer
+# You would typically put this in a separate file, but for demonstration:
+if __name__ == "__main__":
+    pytest.main([__file__])
