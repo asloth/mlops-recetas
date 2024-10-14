@@ -72,11 +72,11 @@ def mock_imports(monkeypatch):
     mocks = {
         "mlflow": mock_mlflow,
         "unsloth": mock_unsloth,
-        "torch": MockModule("torch"),
-        "datasets": MockModule("datasets"),
-        "trl": MockModule("trl"),
-        "transformers": MockModule("transformers"),
-        "fastapi": MockModule("fastapi"),
+        # "torch": MockModule("torch"),
+        # "datasets": MockModule("datasets"),
+        # "trl": MockModule("trl"),
+        # "transformers": MockModule("transformers"),
+        # "fastapi": MockModule("fastapi"),
     }
 
     for name, mock in mocks.items():
