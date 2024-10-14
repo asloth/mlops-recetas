@@ -62,7 +62,8 @@ class PicklableMock:
 
 @pytest.fixture
 def mock_trainer():
-    with patch("trl.SFTTrainer", return_value=PicklableMock()) as MockTrainer:
+    model = [i for i in range(10)]
+    with patch("trainmodel.SFTTrainer", return_value=model) as MockTrainer:
         yield MockTrainer
 
 
