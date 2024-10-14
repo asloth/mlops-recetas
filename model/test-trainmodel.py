@@ -22,6 +22,10 @@ def mock_module(module_name, module_dict):
 
 @pytest.fixture(autouse=True)
 def mock_imports(monkeypatch):
+    mock_FastLanguageModel = MagicMock()
+    mock_FastLanguageModel.from_pretrained.return_value = (MagicMock(), MagicMock())
+    mock_unsloth = MagicMock()
+    mock_unsloth.FastLanguageModel = mock_FastLanguageModel
     mlflow_mock = mock_module(
         "mlflow",
         {
@@ -43,7 +47,7 @@ def mock_imports(monkeypatch):
 
     mocks = {
         "mlflow": mlflow_mock,
-        "unsloth": create_autospec_mock(),
+        "unsloth": mock_unsloth,
         "torch": create_autospec_mock(),
         "datasets": create_autospec_mock(),
         "trl": create_autospec_mock(),
