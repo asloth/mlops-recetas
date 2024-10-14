@@ -4,59 +4,85 @@ from unittest.mock import MagicMock
 from types import ModuleType
 
 
-def create_autospec_mock():
-    """Create a MagicMock that creates new mocks for accessed attributes."""
-    return MagicMock(side_effect=lambda *args, **kwargs: MagicMock())
+class MockModule(ModuleType):
+    """A custom module class that creates attributes on-the-fly and allows assignment."""
 
+    def __init__(self, name):
+        super().__init__(name)
+        self._mock_dict = {}
 
-def mock_module(module_name, module_dict):
-    """Recursively mock a module and its submodules."""
-    mock = ModuleType(module_name)
-    for attr, value in module_dict.items():
-        if isinstance(value, dict):
-            setattr(mock, attr, mock_module(f"{module_name}.{attr}", value))
+    def __getattr__(self, name):
+        if name not in self._mock_dict:
+            self._mock_dict[name] = MockModule(f"{self.__name__}.{name}")
+        return self._mock_dict[name]
+
+    def __setattr__(self, name, value):
+        if name == "_mock_dict":
+            super().__setattr__(name, value)
         else:
-            setattr(mock, attr, create_autospec_mock())
-    return mock
+            self._mock_dict[name] = value
+
+
+def create_mock_mlflow():
+    mock_mlflow = MockModule("mlflow")
+
+    # Mock specific functions
+    mock_mlflow.start_run = MagicMock()
+    mock_mlflow.set_tracking_uri = MagicMock()
+    mock_mlflow.set_experiment = MagicMock()
+    mock_mlflow.log_param = MagicMock()
+    mock_mlflow.log_metric = MagicMock()
+    mock_mlflow.pyfunc.log_model = MagicMock()
+
+    # Mock classes
+    mock_mlflow.models.signature.ModelSignature = type("ModelSignature", (), {})
+    mock_mlflow.types.ColSpec = type("ColSpec", (), {})
+    mock_mlflow.types.DataType = type("DataType", (), {})
+    mock_mlflow.types.ParamSchema = type("ParamSchema", (), {})
+    mock_mlflow.types.ParamSpec = type("ParamSpec", (), {})
+    mock_mlflow.types.Schema = type("Schema", (), {})
+
+    return mock_mlflow
+
+    # def create_autospec_mock():
+    #    """Create a MagicMock that creates new mocks for accessed attributes."""
+    #    return MagicMock(side_effect=lambda *args, **kwargs: MagicMock())
+    #
+    #
+    # def mock_module(module_name, module_dict):
+    #    """Recursively mock a module and its submodules."""
+    #    mock = ModuleType(module_name)
+    #    for attr, value in module_dict.items():
+    #        if isinstance(value, dict):
+    #            setattr(mock, attr, mock_module(f"{module_name}.{attr}", value))
+    #        else:
+    #            setattr(mock, attr, create_autospec_mock())
+    #    return mock
 
 
 @pytest.fixture(autouse=True)
 def mock_imports(monkeypatch):
+    mock_mlflow = create_mock_mlflow()
+
     mock_FastLanguageModel = MagicMock()
-    mock_FastLanguageModel.from_pretrained.return_value = (MagicMock(), MagicMock())
     mock_unsloth = MagicMock()
+    mock_FastLanguageModel.from_pretrained.return_value = (MagicMock(), MagicMock())
     mock_unsloth.FastLanguageModel = mock_FastLanguageModel
-    mlflow_mock = mock_module(
-        "mlflow",
-        {
-            "start_run": None,
-            "set_tracking_uri": None,
-            "set_experiment": None,
-            "log_param": None,
-            "log_metric": None,
-            "pyfunc": {"log_model": None, "PythonModel": MagicMock()},
-            "models": {
-                "signature": {
-                    "ModelSignature": MagicMock(),
-                },
-            },
-        },
-    )
 
     mocks = {
-        "mlflow": mlflow_mock,
+        "mlflow": mock_mlflow,
         "unsloth": mock_unsloth,
-        "torch": create_autospec_mock(),
-        "datasets": create_autospec_mock(),
-        "trl": create_autospec_mock(),
-        "transformers": create_autospec_mock(),
-        "fastapi": create_autospec_mock(),
+        "torch": MockModule("torch"),
+        "datasets": MockModule("datasets"),
+        "trl": MockModule("trl"),
+        "transformers": MockModule("transformers"),
+        "fastapi": MockModule("fastapi"),
     }
 
     for name, mock in mocks.items():
         monkeypatch.setitem(sys.modules, name, mock)
 
-    return mocks["mlflow"]
+    return mock_mlflow
 
 
 def test_train_my_model_mlflow_logging(mock_imports):
@@ -74,7 +100,7 @@ def test_train_my_model_mlflow_logging(mock_imports):
         m.setattr("trainmodel.FastLanguageModel.from_pretrained", mock_from_pretrained)
 
         m.setattr("trainmodel.is_bfloat16_supported", lambda: False)
-        m.setattr("trainmodel.TrainingArguments", create_autospec_mock())
+        m.setattr("trainmodel.TrainingArguments", MagicMock())
 
         # Mock SFTTrainer
         mock_trainer = MagicMock()
