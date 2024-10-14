@@ -2,6 +2,19 @@ import pytest
 from unittest.mock import patch, MagicMock
 
 
+class MockMLflow:
+    def __init__(self):
+        self.start_run = MagicMock()
+        self.set_tracking_uri = MagicMock()
+        self.set_experiment = MagicMock()
+        self.log_param = MagicMock()
+        self.log_metric = MagicMock()
+        self.pyfunc = MagicMock()
+        self.models = MagicMock()
+        self.models.signature = MagicMock()
+        self.models.signature.ModelSignature = MagicMock()
+
+
 # Mock all the imports
 @pytest.fixture(autouse=True)
 def mock_imports():
@@ -18,7 +31,7 @@ def mock_imports():
         "trl": MagicMock(),
         "transformers": MagicMock(),
         "fastapi": MagicMock(),
-        "mlflow": MagicMock(),
+        "mlflow": MockMLflow(),
     }
     with patch.dict("sys.modules", mocks):
         yield mocks["mlflow"]
