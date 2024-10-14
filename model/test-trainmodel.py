@@ -125,11 +125,9 @@ def mock_dependencies():
         yield
 
 
-def test_train_my_model():
+def test_train_my_model(mock_model, mock_tokenizer):
     # Mock the global variables that are used in the function
-    global model, tokenizer, max_seq_length
-    model = mock.MagicMock()
-    tokenizer = mock.MagicMock()
+    global max_seq_length
 
     max_seq_length = 512
 
@@ -154,7 +152,7 @@ def test_train_my_model():
     mlflow.log_metric.assert_called_once_with("minutesxtraining", 10.0)
 
     # Check that the model was saved
-    model.save_pretrained_merged.assert_called_once()
+    mock_model.save_pretrained_merged.assert_called_once()
 
     # Check that the model was logged to MLflow
     mlflow.pyfunc.log_model.assert_called_once()
