@@ -42,12 +42,13 @@ def compare_and_deploy():
 
     best_version = best_model["version"]
 
-    # Transition the best version to production
-    client.transition_model_version_stage(
-        name=registered_model_name, version=best_version, stage="Production"
+    # Promote the best version using the modern alias API
+    # (transition_model_version_stage is deprecated since MLflow 2.9)
+    client.set_registered_model_alias(
+        name=registered_model_name, alias="production", version=best_version
     )
 
-    print(f"Model version {best_version} is now in production.")
+    print(f"Model version {best_version} is now aliased as 'production'.")
 
 
 app = FastAPI()

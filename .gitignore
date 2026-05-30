@@ -2,3 +2,7 @@ model/.venv/
 mlruns/
 airflow/logs/
 airflow/dags/__pycache__/
+
+# Secrets — use mlflow.env.example as the template
+mlflow-server/mlflow.env
+airflow/.env

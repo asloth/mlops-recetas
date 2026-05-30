@@ -4,11 +4,12 @@ from datasets import load_dataset
 from trl import SFTTrainer
 from transformers import TrainingArguments
 from unsloth import is_bfloat16_supported
-
+from unsloth.chat_templates import get_chat_template
 import mlflow
 from fastapi import FastAPI
 from trl import SFTTrainer
 import transformers
+from transformers import BitsAndBytesConfig
 
 max_seq_length = 2048  # Choose any! We auto support RoPE Scaling internally!
 dtype = (
@@ -18,40 +19,47 @@ load_in_4bit = True  # Use 4bit quantization to reduce memory usage. Can be Fals
 
 app = FastAPI()
 
+bnb_config = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_compute_dtype="float16",  # or bfloat16
+    bnb_4bit_use_double_quant=True,
+    bnb_4bit_quant_type="nf4"
+)
 
 model, tokenizer = FastLanguageModel.from_pretrained(
     model_name="unsloth/Phi-3.5-mini-instruct",  # Choose ANY! eg teknium/OpenHermes-2.5-Mistral-7B
     max_seq_length=max_seq_length,
     dtype=dtype,
+    device_map = "auto",
     load_in_4bit=load_in_4bit,
+    quantization_config = bnb_config 
 )
 
+tokenizer = get_chat_template(
+    tokenizer,
+    chat_template = "phi-3", # Supports zephyr, chatml, mistral, llama, alpaca, vicuna, vicuna_old, unsloth
+)
 
-def formatting_prompts_func(examples):
-    alpaca_prompt = """
-    <|user|>
-    {}<|end|>
-    <|assistant|>
-    {}<|end|>
+def format_row_for_map(example):
     """
-    instructions = examples["question"]
-    outputs = examples["answer"]
-    texts = []
-    for instruction, output in zip(instructions, outputs):
-        # Must add EOS_TOKEN, otherwise your generation will go on forever!
-        text = alpaca_prompt.format(instruction, output)
-        texts.append(text)
+    Function to use with dataset.map() - returns dict format
+    """
     return {
-        "text": texts,
+        "conversations": [
+            {"role": "human", "content": str(example['question'])},
+            {"role": "assistant", "content": str(example['answer'])},
+        ]
     }
 
-
+def formatting_prompts_func(examples):
+    convos = examples["conversations"]
+    texts = [tokenizer.apply_chat_template(convo, tokenize = False, add_generation_prompt = False) for convo in convos]
+    return { "text" : texts, }
 pass
-
 
 model = FastLanguageModel.get_peft_model(
     model,
-    r=16,  # Choose any number > 0 ! Suggested 8, 16, 32, 64, 128
+    r=8,  # Choose any number > 0 ! Suggested 8, 16, 32, 64, 128
     target_modules=[
         "q_proj",
         "k_proj",
@@ -102,7 +110,7 @@ class Phi3(mlflow.pyfunc.PythonModel):
         # NB: If you do not have a CUDA-capable device or have torch installed with CUDA support
         # this setting will not function correctly. Setting device to 'cpu' is valid, but
         # the performance will be very slow.
-        # self.model.to(device="cpu")
+        #self.model.to(device="cpu")
         # If running on a GPU-compatible environment, uncomment the following line:
         self.model.to(device="cuda")
 
@@ -185,17 +193,22 @@ signature = ModelSignature(
 
 
 # Define input example
-input_example = pd.DataFrame({"prompt": ["What is Neo4J?"]})
+input_example = pd.DataFrame({"prompt": ["Dame una receta de lomo saltado peruano."]})
 
 
 dataset = load_dataset("somosnlp/recetasdelaabuela_it", split="train")
-dataset = dataset.map(formatting_prompts_func, cache_file_name=None)
+dataset = dataset.map(format_row_for_map)
+dataset = dataset.remove_columns('question')
+dataset = dataset.remove_columns('answer')
+print(dataset.features)
+# Format the dataset into text prompts
+dataset = dataset.map(formatting_prompts_func, batched = True,)
 
 
 def train_my_model():
-    warmup_steps = 5
+    warmup_steps = 3
     per_device_train_batch_size = 2
-    max_steps = 10
+    max_steps = 4
     weight_decay = 0.01
     gradient_accumulation_steps = 4
 
@@ -243,7 +256,15 @@ def train_my_model():
         mlflow.log_metric(
             "minutesxtraining", round(trainer_stats.metrics["train_runtime"] / 60, 2)
         )
+        mlflow.log_metric("train_loss", trainer_stats.metrics["train_loss"])
 
+        import gc
+
+        # Clear cache before merging
+        torch.cuda.empty_cache()
+        gc.collect()
+        print("Merging model")
+        # Merge the LoRA weights into the base model
         model.save_pretrained_merged(
             "model",
             tokenizer,

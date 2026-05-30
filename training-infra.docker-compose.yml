@@ -1,7 +1,7 @@
 services:
   postgres:
     env_file: "./mlflow-server/mlflow.env"
-    image: postgres:latest
+    image: postgres:16
     container_name: postgres
     restart: always
     ports:

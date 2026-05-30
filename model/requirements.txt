@@ -1,3 +1,4 @@
+unsloth
 pandas
 pytest
 scikit-learn
@@ -5,7 +6,7 @@ numpy
 mlflow
 fastapi[standard]
 xformers
-trl<0.9.0
+trl
 peft
 accelerate
 bitsandbytes
